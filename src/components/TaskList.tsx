@@ -5,10 +5,12 @@ interface Task {
   title: string;
   state: "todo" | "doing" | "done";
   estimateMinutes?: number;
+  goalId?: string;
 }
 
 interface TaskListProps {
   tasks: Task[];
+  goals?: { id: string; title: string }[];
   onTaskAdd: (title: string) => void;
   onTaskUpdate: (id: string, updates: Partial<Task>) => void;
   onTaskDelete: (id: string) => void;
@@ -16,6 +18,7 @@ interface TaskListProps {
 
 export default function TaskList({
   tasks,
+  goals = [],
   onTaskAdd,
   onTaskUpdate,
   onTaskDelete,
@@ -131,6 +134,28 @@ export default function TaskList({
                 >
                   {task.title}
                 </p>
+                {goals.length > 0 && (
+                  <div className="mt-2 flex items-center gap-2 text-xs text-gray-500">
+                    <label htmlFor={`goal-${task.id}`}>目標:</label>
+                    <select
+                      id={`goal-${task.id}`}
+                      className="px-2 py-1 rounded border border-border bg-white"
+                      value={task.goalId || ""}
+                      onChange={(e) =>
+                        onTaskUpdate(task.id, {
+                          goalId: e.target.value || undefined,
+                        })
+                      }
+                    >
+                      <option value="">未選択</option>
+                      {goals.map((g) => (
+                        <option key={g.id} value={g.id}>
+                          {g.title}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
                 {task.estimateMinutes && (
                   <p className="text-xs text-gray-500 mt-1">
                     見積: {task.estimateMinutes}分

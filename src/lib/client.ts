@@ -8,6 +8,9 @@ import {
   Block as BlockT,
   Intermission as IntermissionT,
   Checkin as CheckinT,
+  Goal as GoalT,
+  CreateGoalInput,
+  UpdateGoalInput,
 } from "@/lib/schemas";
 
 type WithId<T> = T & { id: string };
@@ -116,4 +119,24 @@ export async function closeDay(input?: { date?: string }) {
     `/api/review/close-day`,
     { method: "POST", body: JSON.stringify(input ?? {}) },
   );
+}
+
+// Goals
+export async function listGoals() {
+  return api<{ goals: Array<WithId<GoalT>> }>(`/api/goals`);
+}
+export async function createGoal(input: CreateGoalInput) {
+  return api<{ goal: WithId<GoalT> }>(`/api/goals`, {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+export async function updateGoal(id: string, patch: UpdateGoalInput) {
+  return api<{ goal: WithId<GoalT> }>(`/api/goals/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify(patch),
+  });
+}
+export async function deleteGoal(id: string) {
+  return api<{ ok: true }>(`/api/goals/${id}`, { method: "DELETE" });
 }

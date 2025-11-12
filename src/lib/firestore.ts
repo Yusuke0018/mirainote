@@ -10,6 +10,7 @@ export const col = {
   blocks: db.collection("blocks"),
   intermissions: db.collection("intermissions"),
   checkins: db.collection("checkins"),
+  goals: db.collection("goals"),
 };
 
 export type WithId<T> = T & { id: string };

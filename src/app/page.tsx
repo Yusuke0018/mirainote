@@ -12,9 +12,15 @@ import {
   updateTask as apiUpdateTask,
   deleteTask as apiDeleteTask,
   createBlock as apiCreateBlock,
+  updateBlock as apiUpdateBlock,
+  deleteBlock as apiDeleteBlock,
   interruptSchedule,
   closeDay,
+  listGoals,
+  createGoal,
+  deleteGoal,
 } from "@/lib/client";
+import GoalsPanel from "@/components/GoalsPanel";
 
 export default function Home() {
   type UITask = {
@@ -40,6 +46,9 @@ export default function Home() {
   >([]);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const [goals, setGoals] = useState<
+    { id: string; title: string; color?: string }[]
+  >([]);
 
   const ymd = useMemo(() => currentDate.toFormat("yyyy-LL-dd"), [currentDate]);
 
@@ -76,6 +85,11 @@ export default function Home() {
           start: i.start,
           end: i.end,
         })),
+      );
+      // goals (side-load)
+      const gl = await listGoals();
+      setGoals(
+        gl.goals.map((g) => ({ id: g.id, title: g.title, color: g.color })),
       );
     } catch (err: unknown) {
       const e = err as { message?: string };
@@ -124,15 +138,77 @@ export default function Home() {
       prev.map((t) => (t.id === id ? { ...t, ...updates } : t)),
     );
     try {
-      const patch: { title?: string; state?: UITask['state']; estimateMinutes?: number } = {};
+      const patch: {
+        title?: string;
+        state?: UITask["state"];
+        estimateMinutes?: number;
+        goalId?: string;
+      } = {};
       if (updates.title !== undefined) patch.title = updates.title;
       if (updates.state !== undefined) patch.state = updates.state;
-      if (updates.estimateMinutes !== undefined) patch.estimateMinutes = updates.estimateMinutes;
+      if (updates.estimateMinutes !== undefined)
+        patch.estimateMinutes = updates.estimateMinutes;
+      if ((updates as { goalId?: string }).goalId !== undefined) {
+        patch.goalId = (updates as { goalId?: string }).goalId;
+      }
       await apiUpdateTask(id, patch);
     } catch (err: unknown) {
       setTasks(before);
       const e = err as { message?: string };
       setMessage(e?.message || "タスク更新に失敗しました");
+    }
+  };
+
+  const handleBlockShift = async (id: string, deltaMs: number) => {
+    const b = blocks.find((x) => x.id === id);
+    if (!b) return;
+    const before = blocks;
+    const next = { ...b, start: b.start + deltaMs, end: b.end + deltaMs };
+    setBlocks((prev) => prev.map((x) => (x.id === id ? next : x)));
+    try {
+      await apiUpdateBlock(id, { start: next.start, end: next.end });
+    } catch (err: unknown) {
+      const e = err as { status?: number; message?: string };
+      setBlocks(before);
+      if (e?.status === 409) setMessage("既存ブロックと重なります");
+      else setMessage(e?.message || "ブロック移動に失敗しました");
+    }
+  };
+
+  const handleBlockDelete = async (id: string) => {
+    const before = blocks;
+    setBlocks((prev) => prev.filter((b) => b.id !== id));
+    try {
+      await apiDeleteBlock(id);
+    } catch (err: unknown) {
+      const e = err as { message?: string };
+      setBlocks(before);
+      setMessage(e?.message || "ブロック削除に失敗しました");
+    }
+  };
+
+  const handleGoalAdd = async (title: string) => {
+    try {
+      const { goal } = await createGoal({ title });
+      setGoals((prev) => [
+        { id: goal.id, title: goal.title, color: goal.color },
+        ...prev,
+      ]);
+    } catch (err: unknown) {
+      const e = err as { message?: string };
+      setMessage(e?.message || "目標の追加に失敗しました");
+    }
+  };
+
+  const handleGoalDelete = async (id: string) => {
+    const before = goals;
+    setGoals((prev) => prev.filter((g) => g.id !== id));
+    try {
+      await deleteGoal(id);
+    } catch (err: unknown) {
+      const e = err as { message?: string };
+      setGoals(before);
+      setMessage(e?.message || "目標の削除に失敗しました");
     }
   };
 
@@ -274,6 +350,7 @@ export default function Home() {
           <div className="lg:col-span-1">
             <TaskList
               tasks={tasks}
+              goals={goals}
               onTaskAdd={handleTaskAdd}
               onTaskUpdate={handleTaskUpdate}
               onTaskDelete={handleTaskDelete}
@@ -286,8 +363,19 @@ export default function Home() {
               blocks={blocks}
               intermissions={intermissions}
               onBlockAdd={handleBlockAdd}
+              onBlockShift={handleBlockShift}
+              onBlockDelete={handleBlockDelete}
             />
           </div>
+        </div>
+
+        {/* 目標 */}
+        <div className="mt-6">
+          <GoalsPanel
+            goals={goals}
+            onAdd={handleGoalAdd}
+            onDelete={handleGoalDelete}
+          />
         </div>
 
         {/* フッター */}

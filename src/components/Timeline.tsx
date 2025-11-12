@@ -20,12 +20,16 @@ interface TimelineProps {
   blocks: Block[];
   intermissions: Intermission[];
   onBlockAdd: (start: number, end: number, title?: string) => void;
+  onBlockShift?: (id: string, deltaMs: number) => void;
+  onBlockDelete?: (id: string) => void;
 }
 
 export default function Timeline({
   blocks,
   intermissions,
   onBlockAdd,
+  onBlockShift,
+  onBlockDelete,
 }: TimelineProps) {
   const formatTime = (timestamp: number) => {
     return DateTime.fromMillis(timestamp).toFormat("HH:mm");
@@ -138,6 +142,39 @@ export default function Timeline({
                         {formatTime(block.start)} - {formatTime(block.end)} (
                         {getDuration(block.start, block.end)})
                       </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {onBlockShift && (
+                        <>
+                          <button
+                            title="-30分"
+                            onClick={() =>
+                              onBlockShift(block.id, -30 * 60 * 1000)
+                            }
+                            className="px-2 py-1 rounded border border-border text-sm hover:bg-white"
+                          >
+                            -30m
+                          </button>
+                          <button
+                            title="+30分"
+                            onClick={() =>
+                              onBlockShift(block.id, 30 * 60 * 1000)
+                            }
+                            className="px-2 py-1 rounded border border-border text-sm hover:bg-white"
+                          >
+                            +30m
+                          </button>
+                        </>
+                      )}
+                      {onBlockDelete && (
+                        <button
+                          title="削除"
+                          onClick={() => onBlockDelete(block.id)}
+                          className="px-2 py-1 rounded bg-error/10 hover:bg-error/20 text-error text-sm"
+                        >
+                          削除
+                        </button>
+                      )}
                     </div>
                   </div>
                 );

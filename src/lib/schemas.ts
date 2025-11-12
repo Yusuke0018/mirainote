@@ -59,6 +59,52 @@ export const Checkin = BaseDoc.extend({
 });
 export type Checkin = z.infer<typeof Checkin>;
 
+// Goals
+export const Goal = BaseDoc.extend({
+  title: z.string().min(1),
+  period: z.enum(["year", "quarter", "month", "custom"]).default("month"),
+  startDate: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .optional(),
+  endDate: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .optional(),
+  color: z.string().optional(),
+});
+export type Goal = z.infer<typeof Goal>;
+
+export const CreateGoalInput = z.object({
+  title: z.string().min(1),
+  period: z.enum(["year", "quarter", "month", "custom"]).optional(),
+  startDate: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .optional(),
+  endDate: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .optional(),
+  color: z.string().optional(),
+});
+export type CreateGoalInput = z.infer<typeof CreateGoalInput>;
+
+export const UpdateGoalInput = z.object({
+  title: z.string().min(1).optional(),
+  period: z.enum(["year", "quarter", "month", "custom"]).optional(),
+  startDate: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .optional(),
+  endDate: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .optional(),
+  color: z.string().optional(),
+});
+export type UpdateGoalInput = z.infer<typeof UpdateGoalInput>;
+
 // Input DTOs
 export const CreatePlanInput = z.object({
   date: z
