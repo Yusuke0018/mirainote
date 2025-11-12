@@ -17,6 +17,9 @@ import {
   createTask as apiCreateTask,
   updateTask as apiUpdateTask,
   deleteTask as apiDeleteTask,
+  createBlock as apiCreateBlock,
+  updateBlock as apiUpdateBlock,
+  deleteBlock as apiDeleteBlock,
   interruptSchedule,
   closeDay,
   listGoals,
@@ -41,6 +44,18 @@ export default function Home() {
   const [currentDate, setCurrentDate] = useState(DateTime.now());
   const [planId, setPlanId] = useState<string | null>(null);
   const [tasks, setTasks] = useState<UITask[]>([]);
+  const [blocks, setBlocks] = useState<
+    {
+      id: string;
+      title?: string;
+      start: number;
+      end: number;
+      taskId?: string;
+    }[]
+  >([]);
+  const [intermissions, setIntermissions] = useState<
+    { id: string; start: number; end: number }[]
+  >([]);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [goals, setGoals] = useState<
@@ -85,6 +100,38 @@ export default function Home() {
     return { todo, doing, done, total: tasks.length };
   }, [tasks]);
 
+  const findSlotForDuration = (minutes: number) => {
+    const durationMs = Math.max(1, minutes) * 60 * 1000;
+    const startOfDay = DateTime.fromISO(ymd).startOf("day").toMillis();
+    const sorted = blocks.slice().sort((a, b) => a.start - b.start);
+    let cursor = startOfDay;
+    for (const block of sorted) {
+      if (cursor + durationMs <= block.start) {
+        return { start: cursor, end: cursor + durationMs };
+      }
+      cursor = Math.max(cursor, block.end);
+    }
+    return { start: cursor, end: cursor + durationMs };
+  };
+
+  const scheduleBlockForTask = async (task: {
+    id: string;
+    title: string;
+    estimateMinutes?: number;
+  }) => {
+    if (!planId) return;
+    const duration = task.estimateMinutes ?? 30;
+    const { start, end } = findSlotForDuration(duration);
+    const { block } = await apiCreateBlock({
+      planId,
+      start,
+      end,
+      title: task.title,
+      taskId: task.id,
+    });
+    setBlocks((prev) => [...prev, block]);
+  };
+
   const fetchPlan = async (dateStr: string) => {
     setLoading(true);
     setMessage(null);
@@ -102,6 +149,22 @@ export default function Home() {
           state: t.state as UITask["state"],
           estimateMinutes: t.estimateMinutes,
           order: (t as unknown as { order?: number }).order,
+        })),
+      );
+      setBlocks(
+        bundle.blocks.map((b) => ({
+          id: b.id,
+          title: b.title,
+          start: b.start,
+          end: b.end,
+          taskId: b.taskId,
+        })),
+      );
+      setIntermissions(
+        bundle.intermissions.map((i) => ({
+          id: i.id,
+          start: i.start,
+          end: i.end,
         })),
       );
       // goals (side-load)
@@ -169,6 +232,16 @@ export default function Home() {
             : t,
         ),
       );
+      try {
+        await scheduleBlockForTask({
+          id: task.id,
+          title: task.title,
+          estimateMinutes: task.estimateMinutes,
+        });
+      } catch (err: unknown) {
+        const e = err as { message?: string };
+        setMessage(e?.message || "タイムラインへの反映に失敗しました");
+      }
     } catch (err: unknown) {
       setTasks((prev) => prev.filter((t) => t.id !== tempId));
       const e = err as { message?: string };
@@ -177,29 +250,106 @@ export default function Home() {
   };
 
   const handleTaskUpdate = async (id: string, updates: Partial<UITask>) => {
-    const before = tasks;
+    const beforeTasks = tasks;
+    const beforeBlocks = blocks;
     setTasks((prev) =>
       prev.map((t) => (t.id === id ? { ...t, ...updates } : t)),
     );
-    try {
-      const patch: {
-        title?: string;
-        state?: UITask["state"];
-        estimateMinutes?: number;
-        goalId?: string;
-      } = {};
-      if (updates.title !== undefined) patch.title = updates.title;
-      if (updates.state !== undefined) patch.state = updates.state;
-      if (updates.estimateMinutes !== undefined)
-        patch.estimateMinutes = updates.estimateMinutes;
-      if ((updates as { goalId?: string }).goalId !== undefined) {
-        patch.goalId = (updates as { goalId?: string }).goalId;
+
+    const patch: {
+      title?: string;
+      state?: UITask["state"];
+      estimateMinutes?: number;
+      goalId?: string;
+    } = {};
+    if (updates.title !== undefined) patch.title = updates.title;
+    if (updates.state !== undefined) patch.state = updates.state;
+    if (updates.estimateMinutes !== undefined)
+      patch.estimateMinutes = updates.estimateMinutes;
+    if ((updates as { goalId?: string }).goalId !== undefined) {
+      patch.goalId = (updates as { goalId?: string }).goalId;
+    }
+
+    const linkedBlock = blocks.find((b) => b.taskId === id);
+    let blockPromise: Promise<unknown> | null = null;
+    if (linkedBlock && (updates.title !== undefined || updates.estimateMinutes !== undefined)) {
+      const blockPatch: { title?: string; end?: number } = {};
+      if (updates.title !== undefined) {
+        blockPatch.title = updates.title;
       }
-      await apiUpdateTask(id, patch);
+      if (updates.estimateMinutes !== undefined) {
+        const durationMs = Math.max(1, updates.estimateMinutes ?? 0) * 60 * 1000;
+        blockPatch.end = linkedBlock.start + durationMs;
+      }
+      setBlocks((prev) =>
+        prev.map((b) =>
+          b.id === linkedBlock.id
+            ? {
+                ...b,
+                ...(blockPatch.title ? { title: blockPatch.title } : {}),
+                ...(blockPatch.end ? { end: blockPatch.end } : {}),
+              }
+            : b,
+        ),
+      );
+      blockPromise = apiUpdateBlock(linkedBlock.id, blockPatch);
+    }
+
+    try {
+      await Promise.all([
+        apiUpdateTask(id, patch),
+        blockPromise ?? Promise.resolve(),
+      ]);
     } catch (err: unknown) {
-      setTasks(before);
+      setTasks(beforeTasks);
+      setBlocks(beforeBlocks);
       const e = err as { message?: string };
       setMessage(e?.message || "タスク更新に失敗しました");
+    }
+  };
+
+  const handleBlockShift = async (id: string, deltaMs: number) => {
+    const block = blocks.find((x) => x.id === id);
+    if (!block) return;
+    const before = blocks;
+    const next = { ...block, start: block.start + deltaMs, end: block.end + deltaMs };
+    setBlocks((prev) => prev.map((x) => (x.id === id ? next : x)));
+    try {
+      await apiUpdateBlock(id, { start: next.start, end: next.end });
+    } catch (err: unknown) {
+      const e = err as { status?: number; message?: string };
+      setBlocks(before);
+      if (e?.status === 409) setMessage("既存ブロックと重なります");
+      else setMessage(e?.message || "ブロック移動に失敗しました");
+    }
+  };
+
+  const handleBlockDelete = async (id: string) => {
+    const before = blocks;
+    setBlocks((prev) => prev.filter((b) => b.id !== id));
+    try {
+      await apiDeleteBlock(id);
+    } catch (err: unknown) {
+      const e = err as { message?: string };
+      setBlocks(before);
+      setMessage(e?.message || "ブロック削除に失敗しました");
+    }
+  };
+
+  const handleBlockMoveTo = async (id: string, start: number, end: number) => {
+    const block = blocks.find((x) => x.id === id);
+    if (!block) return;
+    const before = blocks;
+    setBlocks((prev) =>
+      prev.map((x) => (x.id === id ? { ...x, start, end } : x)),
+    );
+    try {
+      await apiUpdateBlock(id, { start, end });
+    } catch (err: unknown) {
+      const e = err as { status?: number; message?: string };
+      setBlocks(before);
+      if (e?.status === 409) setMessage("既存ブロックと重なります");
+      else setMessage(e?.message || "ブロック移動に失敗しました");
     }
   };
 
@@ -237,12 +387,21 @@ export default function Home() {
   };
 
   const handleTaskDelete = async (id: string) => {
-    const before = tasks;
+    const beforeTasks = tasks;
+    const beforeBlocks = blocks;
+    const linkedBlock = blocks.find((b) => b.taskId === id);
     setTasks((prev) => prev.filter((t) => t.id !== id));
+    if (linkedBlock) {
+      setBlocks((prev) => prev.filter((b) => b.id !== linkedBlock.id));
+    }
     try {
-      await apiDeleteTask(id);
+      await Promise.all([
+        apiDeleteTask(id),
+        linkedBlock ? apiDeleteBlock(linkedBlock.id) : Promise.resolve(),
+      ]);
     } catch (err: unknown) {
-      setTasks(before);
+      setTasks(beforeTasks);
+      setBlocks(beforeBlocks);
       const e = err as { message?: string };
       setMessage(e?.message || "タスク削除に失敗しました");
     }
@@ -619,7 +778,15 @@ export default function Home() {
 
           {/* タイムライン */}
           <div className="lg:col-span-1">
-            <Timeline tasks={tasks} planDate={ymd} />
+            <Timeline
+              tasks={tasks}
+              planDate={ymd}
+              blocks={blocks}
+              intermissions={intermissions}
+              onBlockShift={handleBlockShift}
+              onBlockDelete={handleBlockDelete}
+              onBlockMoveTo={handleBlockMoveTo}
+            />
           </div>
         </div>
 
