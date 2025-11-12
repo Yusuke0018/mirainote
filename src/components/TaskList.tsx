@@ -33,11 +33,11 @@ export default function TaskList({
   const getStateColor = (state: Task["state"]) => {
     switch (state) {
       case "todo":
-        return "bg-pastel-blue/30 border-pastel-blue text-pastel-blue";
+        return "bg-pastel-blue/20 border-pastel-blue text-pastel-blue";
       case "doing":
-        return "bg-pastel-yellow/30 border-pastel-yellow text-warning";
+        return "bg-pastel-yellow/20 border-pastel-yellow text-warning";
       case "done":
-        return "bg-mint-light/30 border-mint-green text-success";
+        return "bg-mint-light/20 border-mint-green text-success";
     }
   };
 

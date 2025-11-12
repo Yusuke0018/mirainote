@@ -85,7 +85,7 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-white via-white to-mint-lighter/20">
+    <div className="min-h-screen bg-background">
       {/* ヘッダー */}
       <header className="sticky top-0 z-50 backdrop-blur-lg bg-white/80 border-b border-border shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">

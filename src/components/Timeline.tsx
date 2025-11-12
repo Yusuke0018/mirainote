@@ -114,11 +114,11 @@ export default function Timeline({
               {/* Blocks */}
               {blocks.map((block, index) => {
                 const colors = [
-                  "bg-mint-green/20 border-mint-green",
-                  "bg-pastel-pink/20 border-pastel-pink",
-                  "bg-pastel-blue/20 border-pastel-blue",
-                  "bg-pastel-lavender/20 border-pastel-lavender",
-                  "bg-pastel-peach/20 border-pastel-peach",
+                  "bg-mint-green/10 border-mint-green",
+                  "bg-pastel-pink/10 border-pastel-pink",
+                  "bg-pastel-blue/10 border-pastel-blue",
+                  "bg-pastel-lavender/10 border-pastel-lavender",
+                  "bg-pastel-peach/10 border-pastel-peach",
                 ];
                 const colorClass = colors[index % colors.length];
 

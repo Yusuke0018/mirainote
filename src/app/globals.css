@@ -1,22 +1,23 @@
 @import "tailwindcss";
 
 :root {
-  /* パステルカラーパレット（ミントグリーン中心） */
-  --mint-green: #98d8c8;
-  --mint-light: #c8e9dd;
-  --mint-lighter: #e8f6f2;
+  /* アクセント（落ち着いたミント） */
+  --mint-green: #2fa38a; /* アクセント主色 */
+  --mint-light: #9fdccf; /* ホバー/淡色UI */
+  --mint-lighter: #f0fbf7; /* ごく淡い背景 */
 
-  --pastel-pink: #ffd1dc;
-  --pastel-blue: #aec6cf;
-  --pastel-lavender: #d5aaff;
-  --pastel-peach: #ffe5b4;
-  --pastel-yellow: #ffeaa7;
+  /* サブパレット（低彩度） */
+  --pastel-pink: #ffd8e1;
+  --pastel-blue: #b7d2db;
+  --pastel-lavender: #d9c6ff;
+  --pastel-peach: #ffe9c7;
+  --pastel-yellow: #fff0b3;
 
-  /* ベースカラー（白基調） */
-  --background: #ffffff;
-  --foreground: #2c3e50;
-  --card-bg: #ffffff;
-  --border: #e0f2f1;
+  /* ベース（ややオフホワイト + 高コントラスト文字） */
+  --background: #f7f9fb; /* 画面背景 */
+  --foreground: #1f2937; /* 文字色（グレー900相当） */
+  --card-bg: #ffffff; /* カード */
+  --border: #e5e7eb; /* ニュートラル境界線 */
 
   /* 状態カラー */
   --success: #7dcea0;
@@ -25,16 +26,16 @@
   --info: #89cff0;
 
   /* グレースケール */
-  --gray-50: #f8fafb;
-  --gray-100: #f1f5f7;
-  --gray-200: #e5eef1;
-  --gray-300: #d1e0e5;
-  --gray-400: #a8bfc7;
-  --gray-500: #7a8e96;
-  --gray-600: #5a6c75;
-  --gray-700: #3e4c54;
-  --gray-800: #2c3840;
-  --gray-900: #1a2228;
+  --gray-50: #f8fafc;
+  --gray-100: #f1f5f9;
+  --gray-200: #e2e8f0;
+  --gray-300: #cbd5e1;
+  --gray-400: #94a3b8;
+  --gray-500: #64748b;
+  --gray-600: #475569;
+  --gray-700: #334155;
+  --gray-800: #1e293b;
+  --gray-900: #0f172a;
 }
 
 @theme inline {
