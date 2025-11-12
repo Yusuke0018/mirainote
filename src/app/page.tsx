@@ -57,6 +57,14 @@ export default function Home() {
     { id: string; title: string; color?: string }[]
   >([]);
   const [userEmail, setUserEmail] = useState<string | null>(null);
+  const [candidates, setCandidates] = useState<
+    | {
+        label: "today_end" | "tomorrow_morning" | "tomorrow_evening";
+        start: number;
+        end: number;
+      }[]
+    | null
+  >(null);
 
   const ymd = useMemo(() => currentDate.toFormat("yyyy-LL-dd"), [currentDate]);
 
@@ -279,11 +287,45 @@ export default function Home() {
     setMessage(null);
     try {
       const now = DateTime.now().toMillis();
-      await interruptSchedule({ planId, start: now, duration: 30 * 60 * 1000 });
+      const res = await interruptSchedule({
+        planId,
+        start: now,
+        duration: 30 * 60 * 1000,
+      });
+      setCandidates(
+        res.unplaced.length
+          ? (res.candidates as {
+              label: "today_end" | "tomorrow_morning" | "tomorrow_evening";
+              start: number;
+              end: number;
+            }[])
+          : null,
+      );
       await fetchPlan(ymd);
     } catch (err: unknown) {
       const e = err as { message?: string };
       setMessage(e?.message || "割り込み処理に失敗しました");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAdopt = async (
+    label: "today_end" | "tomorrow_morning" | "tomorrow_evening",
+  ) => {
+    if (!planId) return;
+    setLoading(true);
+    setMessage(null);
+    try {
+      const res = await (
+        await import("@/lib/client")
+      ).adoptCandidates({ planId, label });
+      setCandidates(null);
+      await fetchPlan(ymd);
+      setMessage("候補を採用しました");
+    } catch (err: unknown) {
+      const e = err as { message?: string };
+      setMessage(e?.message || "候補の採用に失敗しました");
     } finally {
       setLoading(false);
     }
@@ -381,6 +423,28 @@ export default function Home() {
           </div>
         )}
 
+        {candidates && candidates.length > 0 && (
+          <div className="mb-6 p-4 rounded-lg border border-dashed border-mint-green bg-mint-lighter/40">
+            <div className="font-medium mb-2 text-foreground">候補スロット</div>
+            <div className="flex gap-2 flex-wrap">
+              {candidates.map((c) => (
+                <button
+                  key={c.label}
+                  onClick={() => handleAdopt(c.label)}
+                  className="px-3 py-2 rounded-lg border border-mint-green text-mint-green hover:bg-white text-sm"
+                >
+                  {c.label === "today_end"
+                    ? "当日末"
+                    : c.label === "tomorrow_morning"
+                      ? "翌朝"
+                      : "翌日夜"}{" "}
+                  を採用
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* グリッドレイアウト */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* タスクリスト */}
@@ -414,8 +478,12 @@ export default function Home() {
                   ),
                 );
                 try {
-                  await apiUpdateTask(tA.id, { order: bOrder } as unknown as { order: number });
-                  await apiUpdateTask(tB.id, { order: aOrder } as unknown as { order: number });
+                  await apiUpdateTask(tA.id, { order: bOrder } as unknown as {
+                    order: number;
+                  });
+                  await apiUpdateTask(tB.id, { order: aOrder } as unknown as {
+                    order: number;
+                  });
                 } catch {
                   // 失敗したら再取得
                   await fetchPlan(ymd);

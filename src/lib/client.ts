@@ -128,6 +128,22 @@ export async function closeDay(input?: { date?: string }) {
   );
 }
 
+// Scheduler adopt
+export async function adoptCandidates(input: {
+  planId: string;
+  label: "today_end" | "tomorrow_morning" | "tomorrow_evening";
+}) {
+  return api<{
+    ok: true;
+    adopted: Array<{
+      id: string;
+      from: { start: number; end: number };
+      to: { start: number; end: number };
+    }>;
+    targetPlanId: string;
+  }>(`/api/scheduler/adopt`, { method: "POST", body: JSON.stringify(input) });
+}
+
 // Goals
 export async function listGoals() {
   return api<{ goals: Array<WithId<GoalT>> }>(`/api/goals`);
