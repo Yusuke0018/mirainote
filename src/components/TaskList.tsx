@@ -16,6 +16,7 @@ interface TaskListProps {
   onTaskUpdate: (id: string, updates: Partial<Task>) => void;
   onTaskDelete: (id: string) => void;
   onTaskReorder?: (id: string, direction: "up" | "down") => void;
+  onTaskReorderIndex?: (id: string, toIndex: number) => void;
 }
 
 export default function TaskList({
@@ -25,6 +26,7 @@ export default function TaskList({
   onTaskUpdate,
   onTaskDelete,
   onTaskReorder,
+  onTaskReorderIndex,
 }: TaskListProps) {
   const handleAddTask = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -115,6 +117,23 @@ export default function TaskList({
             <div
               key={task.id}
               className="group relative flex items-center gap-3 p-4 rounded-xl border-2 border-border hover:border-mint-green bg-gray-50/50 hover:bg-white transition-all duration-200"
+              draggable
+              onDragStart={(e) => {
+                e.dataTransfer.setData("text/plain", task.id);
+                e.dataTransfer.effectAllowed = "move";
+              }}
+              onDragOver={(e) => {
+                if (!onTaskReorderIndex) return;
+                e.preventDefault();
+                e.dataTransfer.dropEffect = "move";
+              }}
+              onDrop={(e) => {
+                if (!onTaskReorderIndex) return;
+                e.preventDefault();
+                const draggedId = e.dataTransfer.getData("text/plain");
+                if (draggedId && draggedId !== task.id)
+                  onTaskReorderIndex(draggedId, idx);
+              }}
             >
               {/* 状態ボタン */}
               <button

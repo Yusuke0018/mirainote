@@ -27,6 +27,7 @@ import {
   deleteGoal,
 } from "@/lib/client";
 import GoalsPanel from "@/components/GoalsPanel";
+import Modal from "@/components/Modal";
 
 export default function Home() {
   type UITask = {
@@ -65,6 +66,10 @@ export default function Home() {
       }[]
     | null
   >(null);
+  const [checkinModal, setCheckinModal] = useState<{
+    adherenceRate: number;
+    carryOverCount: number;
+  } | null>(null);
 
   const ymd = useMemo(() => currentDate.toFormat("yyyy-LL-dd"), [currentDate]);
 
@@ -336,9 +341,10 @@ export default function Home() {
     setMessage(null);
     try {
       const res = await closeDay({ date: ymd });
-      setMessage(
-        `遵守率: ${(res.checkin.adherenceRate * 100).toFixed(0)}% / 引継ぎ: ${res.checkin.carryOverCount}件`,
-      );
+      setCheckinModal({
+        adherenceRate: res.checkin.adherenceRate,
+        carryOverCount: res.checkin.carryOverCount,
+      });
     } catch (err: unknown) {
       const e = err as { message?: string };
       setMessage(e?.message || "クローズ処理に失敗しました");
@@ -455,6 +461,30 @@ export default function Home() {
               onTaskAdd={handleTaskAdd}
               onTaskUpdate={handleTaskUpdate}
               onTaskDelete={handleTaskDelete}
+              onTaskReorderIndex={async (draggedId: string, toIndex: number) => {
+                const ordered = tasks
+                  .slice()
+                  .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+                const fromIndex = ordered.findIndex((t) => t.id === draggedId);
+                if (fromIndex < 0 || toIndex === fromIndex) return;
+                const moved = ordered.splice(fromIndex, 1)[0];
+                ordered.splice(toIndex, 0, moved);
+                const reOrdered = ordered.map((t, i) => ({ ...t, order: i }));
+                const before = tasks;
+                setTasks(reOrdered);
+                try {
+                  for (let i = 0; i < reOrdered.length; i++) {
+                    const t = reOrdered[i];
+                    if ((before.find((b) => b.id === t.id)?.order ?? i) !== i) {
+                      await apiUpdateTask(t.id, { order: i } as unknown as {
+                        order: number;
+                      });
+                    }
+                  }
+                } catch {
+                  await fetchPlan(ymd);
+                }
+              }}
               onTaskReorder={async (id, dir) => {
                 // 並べ替え: orderを隣とスワップ
                 const ordered = tasks
@@ -512,6 +542,20 @@ export default function Home() {
             onDelete={handleGoalDelete}
           />
         </div>
+
+        {/* 夕方クローズ結果モーダル */}
+        <Modal
+          open={!!checkinModal}
+          title="本日のサマリ"
+          onClose={() => setCheckinModal(null)}
+        >
+          {checkinModal && (
+            <div className="space-y-2 text-sm">
+              <p>遵守率: {(checkinModal.adherenceRate * 100).toFixed(0)}%</p>
+              <p>持越し: {checkinModal.carryOverCount} 件</p>
+            </div>
+          )}
+        </Modal>
 
         {/* フッター */}
         <footer className="mt-12 text-center text-sm text-gray-500">
