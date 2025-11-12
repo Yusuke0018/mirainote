@@ -8,9 +8,11 @@ interface Goal {
 
 interface GoalsPanelProps {
   goals: Goal[];
-  onAdd: (title: string) => void;
+  onAdd: (title: string, color?: string) => void;
   onDelete: (id: string) => void;
 }
+
+const COLORS = ["#2fa38a", "#0ea5e9", "#f59e0b", "#ef4444", "#8b5cf6"];
 
 export default function GoalsPanel({
   goals,
@@ -22,8 +24,9 @@ export default function GoalsPanel({
     const form = e.currentTarget;
     const fd = new FormData(form);
     const title = (fd.get("title") as string) ?? "";
+    const color = (fd.get("color") as string) || undefined;
     if (title.trim()) {
-      onAdd(title.trim());
+      onAdd(title.trim(), color);
       form.reset();
     }
   };
@@ -38,13 +41,24 @@ export default function GoalsPanel({
         </div>
       </div>
       <form onSubmit={handleAdd} className="mb-4">
-        <div className="flex gap-2">
+        <div className="flex gap-2 items-center">
           <input
             type="text"
             name="title"
             placeholder="目標を追加..."
             className="flex-1 px-4 py-3 rounded-xl border-2 border-border bg-gray-50 focus:border-mint-green focus:bg-white outline-none transition-all duration-200 placeholder:text-gray-400"
           />
+          <select
+            name="color"
+            className="px-2 py-2 rounded border border-border bg-white"
+          >
+            <option value="">色</option>
+            {COLORS.map((c) => (
+              <option key={c} value={c}>
+                {c}
+              </option>
+            ))}
+          </select>
           <button
             type="submit"
             className="px-6 py-3 rounded-xl bg-gradient-to-r from-mint-green to-mint-light text-white font-medium hover:shadow-lg hover:scale-105 transition-all duration-200"

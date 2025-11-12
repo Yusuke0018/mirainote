@@ -6,6 +6,7 @@ interface Task {
   state: "todo" | "doing" | "done";
   estimateMinutes?: number;
   goalId?: string;
+  order?: number;
 }
 
 interface TaskListProps {
@@ -14,6 +15,7 @@ interface TaskListProps {
   onTaskAdd: (title: string) => void;
   onTaskUpdate: (id: string, updates: Partial<Task>) => void;
   onTaskDelete: (id: string) => void;
+  onTaskReorder?: (id: string, direction: "up" | "down") => void;
 }
 
 export default function TaskList({
@@ -22,6 +24,7 @@ export default function TaskList({
   onTaskAdd,
   onTaskUpdate,
   onTaskDelete,
+  onTaskReorder,
 }: TaskListProps) {
   const handleAddTask = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -55,6 +58,8 @@ export default function TaskList({
     }
   };
 
+  const sorted = tasks.slice().sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+
   return (
     <div className="bg-white rounded-2xl shadow-sm border border-border p-6">
       <div className="flex items-center gap-3 mb-6">
@@ -85,7 +90,7 @@ export default function TaskList({
 
       {/* タスクリスト */}
       <div className="space-y-3">
-        {tasks.length === 0 ? (
+        {sorted.length === 0 ? (
           <div className="text-center py-12 text-gray-400">
             <svg
               className="w-16 h-16 mx-auto mb-4 text-mint-light"
@@ -106,7 +111,7 @@ export default function TaskList({
             </p>
           </div>
         ) : (
-          tasks.map((task) => (
+          sorted.map((task, idx) => (
             <div
               key={task.id}
               className="group relative flex items-center gap-3 p-4 rounded-xl border-2 border-border hover:border-mint-green bg-gray-50/50 hover:bg-white transition-all duration-200"
@@ -127,40 +132,66 @@ export default function TaskList({
                 {getStateLabel(task.state)}
               </button>
 
-              {/* タイトル */}
+              {/* タイトル・サブ情報 */}
               <div className="flex-1">
                 <p
                   className={`font-medium ${task.state === "done" ? "line-through text-gray-400" : "text-foreground"}`}
                 >
                   {task.title}
                 </p>
-                {goals.length > 0 && (
-                  <div className="mt-2 flex items-center gap-2 text-xs text-gray-500">
-                    <label htmlFor={`goal-${task.id}`}>目標:</label>
-                    <select
-                      id={`goal-${task.id}`}
-                      className="px-2 py-1 rounded border border-border bg-white"
-                      value={task.goalId || ""}
-                      onChange={(e) =>
+                <div className="mt-2 flex items-center gap-3 text-xs text-gray-500">
+                  <div className="flex items-center gap-1">
+                    <span>見積:</span>
+                    <button
+                      title="-5m"
+                      className="px-2 py-0.5 rounded border border-border hover:bg-white"
+                      onClick={() =>
                         onTaskUpdate(task.id, {
-                          goalId: e.target.value || undefined,
+                          estimateMinutes: Math.max(
+                            0,
+                            (task.estimateMinutes ?? 0) - 5,
+                          ),
                         })
                       }
                     >
-                      <option value="">未選択</option>
-                      {goals.map((g) => (
-                        <option key={g.id} value={g.id}>
-                          {g.title}
-                        </option>
-                      ))}
-                    </select>
+                      -5
+                    </button>
+                    <span className="px-2">{task.estimateMinutes ?? 0}分</span>
+                    <button
+                      title="+5m"
+                      className="px-2 py-0.5 rounded border border-border hover:bg-white"
+                      onClick={() =>
+                        onTaskUpdate(task.id, {
+                          estimateMinutes: (task.estimateMinutes ?? 0) + 5,
+                        })
+                      }
+                    >
+                      +5
+                    </button>
                   </div>
-                )}
-                {task.estimateMinutes && (
-                  <p className="text-xs text-gray-500 mt-1">
-                    見積: {task.estimateMinutes}分
-                  </p>
-                )}
+                  {goals.length > 0 && (
+                    <div className="flex items-center gap-1">
+                      <label htmlFor={`goal-${task.id}`}>目標:</label>
+                      <select
+                        id={`goal-${task.id}`}
+                        className="px-2 py-1 rounded border border-border bg-white"
+                        value={task.goalId || ""}
+                        onChange={(e) =>
+                          onTaskUpdate(task.id, {
+                            goalId: e.target.value || undefined,
+                          })
+                        }
+                      >
+                        <option value="">未選択</option>
+                        {goals.map((g) => (
+                          <option key={g.id} value={g.id}>
+                            {g.title}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+                </div>
               </div>
 
               {/* 削除ボタン */}
@@ -183,6 +214,28 @@ export default function TaskList({
                   />
                 </svg>
               </button>
+
+              {/* 並べ替え */}
+              {onTaskReorder && (
+                <div className="flex flex-col gap-1 ml-2">
+                  <button
+                    title="上へ"
+                    disabled={idx === 0}
+                    onClick={() => onTaskReorder(task.id, "up")}
+                    className="w-8 h-6 rounded border border-border text-xs disabled:opacity-40"
+                  >
+                    ↑
+                  </button>
+                  <button
+                    title="下へ"
+                    disabled={idx === sorted.length - 1}
+                    onClick={() => onTaskReorder(task.id, "down")}
+                    className="w-8 h-6 rounded border border-border text-xs disabled:opacity-40"
+                  >
+                    ↓
+                  </button>
+                </div>
+              )}
             </div>
           ))
         )}

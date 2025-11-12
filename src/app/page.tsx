@@ -34,6 +34,7 @@ export default function Home() {
     title: string;
     state: "todo" | "doing" | "done";
     estimateMinutes?: number;
+    order?: number;
   };
   const [currentDate, setCurrentDate] = useState(DateTime.now());
   const [planId, setPlanId] = useState<string | null>(null);
@@ -75,6 +76,7 @@ export default function Home() {
           title: t.title,
           state: t.state as UITask["state"],
           estimateMinutes: t.estimateMinutes,
+          order: (t as unknown as { order?: number }).order,
         })),
       );
       setBlocks(
@@ -389,6 +391,36 @@ export default function Home() {
               onTaskAdd={handleTaskAdd}
               onTaskUpdate={handleTaskUpdate}
               onTaskDelete={handleTaskDelete}
+              onTaskReorder={async (id, dir) => {
+                // 並べ替え: orderを隣とスワップ
+                const ordered = tasks
+                  .slice()
+                  .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+                const idx = ordered.findIndex((t) => t.id === id);
+                if (idx < 0) return;
+                const ni = dir === "up" ? idx - 1 : idx + 1;
+                if (ni < 0 || ni >= ordered.length) return;
+                const tA = ordered[idx];
+                const tB = ordered[ni];
+                const aOrder = tA.order ?? idx;
+                const bOrder = tB.order ?? ni;
+                setTasks((prev) =>
+                  prev.map((t) =>
+                    t.id === tA.id
+                      ? { ...t, order: bOrder }
+                      : t.id === tB.id
+                        ? { ...t, order: aOrder }
+                        : t,
+                  ),
+                );
+                try {
+                  await apiUpdateTask(tA.id, { order: bOrder } as unknown as { order: number });
+                  await apiUpdateTask(tB.id, { order: aOrder } as unknown as { order: number });
+                } catch {
+                  // 失敗したら再取得
+                  await fetchPlan(ymd);
+                }
+              }}
             />
           </div>
 
