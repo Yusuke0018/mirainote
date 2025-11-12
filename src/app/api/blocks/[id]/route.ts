@@ -5,22 +5,22 @@ import { assertNoOverlap, col, getById, updateDoc, OverlapError } from "@/lib/fi
 
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { id: string } },
+  ctx: { params: Promise<{ id: string }> },
 ) {
   try {
     const { uid } = await requireAuth(req);
     const body = await req.json();
     const patch = UpdateBlockInput.parse(body);
-
-    const current = await getById<Block>(col.blocks, params.id);
+    const { id } = await ctx.params;
+    const current = await getById<Block>(col.blocks, id);
     if (!current || current.userId !== uid)
       return NextResponse.json({ error: "Not found" }, { status: 404 });
 
     const nextStart = patch.start ?? current.start;
     const nextEnd = patch.end ?? current.end;
-    await assertNoOverlap(uid, current.planId, nextStart, nextEnd, params.id);
+    await assertNoOverlap(uid, current.planId, nextStart, nextEnd, id);
 
-    const updated = await updateDoc(col.blocks, params.id, Block, {
+    const updated = await updateDoc(col.blocks, id, Block, {
       ...current,
       ...patch,
     });
@@ -36,14 +36,15 @@ export async function PATCH(
 
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { id: string } },
+  ctx: { params: Promise<{ id: string }> },
 ) {
   try {
     const { uid } = await requireAuth(req);
-    const current = await getById<Block>(col.blocks, params.id);
+    const { id } = await ctx.params;
+    const current = await getById<Block>(col.blocks, id);
     if (!current || current.userId !== uid)
       return NextResponse.json({ error: "Not found" }, { status: 404 });
-    await col.blocks.doc(params.id).delete();
+    await col.blocks.doc(id).delete();
     return NextResponse.json({ ok: true });
   } catch (e: unknown) {
     const err = e as { status?: number; message?: string };

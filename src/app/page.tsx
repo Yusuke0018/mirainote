@@ -7,8 +7,9 @@ import TaskList from '@/components/TaskList';
 import Timeline from '@/components/Timeline';
 
 export default function Home() {
+  type UITask = { id: string; title: string; state: 'todo' | 'doing' | 'done'; estimateMinutes?: number };
   const [currentDate, setCurrentDate] = useState(DateTime.now());
-  const [tasks, setTasks] = useState([
+  const [tasks, setTasks] = useState<UITask[]>([
     {
       id: '1',
       title: 'サンプルタスク1',
@@ -32,7 +33,7 @@ export default function Home() {
     },
   ]);
 
-  const [intermissions, setIntermissions] = useState([
+  const [intermissions] = useState([
     {
       id: '1',
       start: DateTime.now().startOf('day').plus({ hours: 12 }).toMillis(),
@@ -46,7 +47,7 @@ export default function Home() {
   };
 
   const handleTaskAdd = (title: string) => {
-    const newTask = {
+    const newTask: UITask = {
       id: Date.now().toString(),
       title,
       state: 'todo' as const,
@@ -57,11 +58,7 @@ export default function Home() {
 
   const handleTaskUpdate = (
     id: string,
-    updates: Partial<{
-      title: string;
-      state: 'todo' | 'doing' | 'done';
-      estimateMinutes?: number;
-    }>,
+    updates: Partial<UITask>,
   ) => {
     setTasks(tasks.map((task) => (task.id === id ? { ...task, ...updates } : task)));
     // TODO: API経由でタスクを更新

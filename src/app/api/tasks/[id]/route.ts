@@ -5,18 +5,18 @@ import { col, getById, updateDoc } from "@/lib/firestore";
 
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { id: string } },
+  ctx: { params: Promise<{ id: string }> },
 ) {
   try {
     const { uid } = await requireAuth(req);
     const body = await req.json();
     const patch = UpdateTaskInput.parse(body);
-
-    const current = await getById<Task>(col.tasks, params.id);
+    const { id } = await ctx.params;
+    const current = await getById<Task>(col.tasks, id);
     if (!current || current.userId !== uid)
       return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-    const updated = await updateDoc(col.tasks, params.id, Task, {
+    const updated = await updateDoc(col.tasks, id, Task, {
       ...current,
       ...patch,
     });
@@ -30,14 +30,15 @@ export async function PATCH(
 
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { id: string } },
+  ctx: { params: Promise<{ id: string }> },
 ) {
   try {
     const { uid } = await requireAuth(req);
-    const current = await getById<Task>(col.tasks, params.id);
+    const { id } = await ctx.params;
+    const current = await getById<Task>(col.tasks, id);
     if (!current || current.userId !== uid)
       return NextResponse.json({ error: "Not found" }, { status: 404 });
-    await col.tasks.doc(params.id).delete();
+    await col.tasks.doc(id).delete();
     return NextResponse.json({ ok: true });
   } catch (e: unknown) {
     const err = e as { status?: number; message?: string };
