@@ -60,18 +60,7 @@
   --color-info: var(--info);
 }
 
-/* ダークテーマは明示的に .dark クラスで有効化（OS設定には追随しない） */
-.dark {
-  --background: #0f1419;
-  --foreground: #e8f6f2;
-  --card-bg: #1a2228;
-  --border: #2c3840;
-
-  /* ミント主体（やや落ち着いたトーン） */
-  --mint-green: #66b8a7;
-  --mint-light: #4aa694;
-  --mint-lighter: #2f6b5f;
-}
+/* ダークモードは不採用（ライト固定） */
 
 body {
   background: var(--background);

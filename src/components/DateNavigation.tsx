@@ -26,15 +26,15 @@ export default function DateNavigation({
   const isToday = currentDate.hasSame(DateTime.now(), "day");
 
   return (
-    <div className="bg-white dark:bg-card-bg rounded-2xl shadow-sm border border-border p-6 mb-6">
+    <div className="bg-white rounded-2xl shadow-sm border border-border p-6 mb-6">
       <div className="flex items-center justify-between">
         <button
           onClick={handlePrevDay}
-          className="flex items-center justify-center w-10 h-10 rounded-xl bg-mint-lighter dark:bg-mint-lighter/10 hover:bg-mint-light dark:hover:bg-mint-light/20 transition-all duration-200 group"
+          className="flex items-center justify-center w-10 h-10 rounded-xl bg-mint-lighter hover:bg-mint-light transition-all duration-200 group"
           aria-label="前の日"
         >
           <svg
-            className="w-5 h-5 text-mint-green dark:text-mint-light"
+            className="w-5 h-5 text-mint-green"
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
@@ -52,7 +52,7 @@ export default function DateNavigation({
           <div className="text-3xl font-bold bg-gradient-to-r from-mint-green to-mint-light bg-clip-text text-transparent">
             {currentDate.toFormat("yyyy年M月d日")}
           </div>
-          <div className="text-sm text-gray-500 dark:text-gray-400 font-medium">
+          <div className="text-sm text-gray-500 font-medium">
             {currentDate.toFormat("cccc", { locale: "ja" })}
           </div>
           {!isToday && (
@@ -67,11 +67,11 @@ export default function DateNavigation({
 
         <button
           onClick={handleNextDay}
-          className="flex items-center justify-center w-10 h-10 rounded-xl bg-mint-lighter dark:bg-mint-lighter/10 hover:bg-mint-light dark:hover:bg-mint-light/20 transition-all duration-200 group"
+          className="flex items-center justify-center w-10 h-10 rounded-xl bg-mint-lighter hover:bg-mint-light transition-all duration-200 group"
           aria-label="次の日"
         >
           <svg
-            className="w-5 h-5 text-mint-green dark:text-mint-light"
+            className="w-5 h-5 text-mint-green"
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"

@@ -85,9 +85,9 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-white via-white to-mint-lighter/20 dark:from-gray-900 dark:via-black dark:to-gray-900">
+    <div className="min-h-screen bg-gradient-to-b from-white via-white to-mint-lighter/20">
       {/* ヘッダー */}
-      <header className="sticky top-0 z-50 backdrop-blur-lg bg-white/80 dark:bg-card-bg/80 border-b border-border shadow-sm">
+      <header className="sticky top-0 z-50 backdrop-blur-lg bg-white/80 border-b border-border shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-3">
@@ -111,7 +111,7 @@ export default function Home() {
               </h1>
             </div>
             <div className="ml-auto flex items-center gap-2">
-              <button className="px-4 py-2 rounded-lg bg-mint-lighter dark:bg-mint-lighter/10 text-mint-green hover:bg-mint-light dark:hover:bg-mint-light/20 font-medium transition-all duration-200">
+              <button className="px-4 py-2 rounded-lg bg-mint-lighter text-mint-green hover:bg-mint-light font-medium transition-all duration-200">
                 設定
               </button>
             </div>
@@ -150,7 +150,7 @@ export default function Home() {
         </div>
 
         {/* フッター */}
-        <footer className="mt-12 text-center text-sm text-gray-500 dark:text-gray-400">
+        <footer className="mt-12 text-center text-sm text-gray-500">
           <p>みらいノート - あなたの未来を計画する</p>
         </footer>
       </main>

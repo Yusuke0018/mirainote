@@ -44,7 +44,7 @@ export default function Timeline({
   const hours = Array.from({ length: 18 }, (_, i) => i + 6);
 
   return (
-    <div className="bg-white dark:bg-card-bg rounded-2xl shadow-sm border border-border p-6">
+    <div className="bg-white rounded-2xl shadow-sm border border-border p-6">
       <div className="flex items-center gap-3 mb-6">
         <div className="w-1 h-8 rounded-full bg-gradient-to-b from-mint-green to-mint-light"></div>
         <h2 className="text-2xl font-bold text-foreground">タイムライン</h2>
@@ -62,7 +62,7 @@ export default function Timeline({
               <div className="w-12 text-sm font-medium text-gray-500 text-right">
                 {hour}:00
               </div>
-              <div className="flex-1 border-t border-dashed border-gray-200 dark:border-gray-700"></div>
+              <div className="flex-1 border-t border-dashed border-gray-200"></div>
             </div>
           ))}
         </div>
@@ -95,7 +95,7 @@ export default function Timeline({
               {intermissions.map((intermission) => (
                 <div
                   key={intermission.id}
-                  className="flex items-center gap-3 p-4 rounded-xl border-2 border-dashed border-gray-300 dark:border-gray-600 bg-gray-50/50 dark:bg-gray-800/30"
+                  className="flex items-center gap-3 p-4 rounded-xl border-2 border-dashed border-gray-300 bg-gray-50/50"
                 >
                   <div className="flex-shrink-0 w-2 h-12 rounded-full bg-gray-400"></div>
                   <div className="flex-1">
@@ -155,7 +155,7 @@ export default function Timeline({
             const end = now.startOf("hour").plus({ hours: 1 }).toMillis();
             onBlockAdd(start, end, "新しいブロック");
           }}
-          className="mt-6 w-full py-4 rounded-xl border-2 border-dashed border-mint-green hover:bg-mint-lighter/20 dark:hover:bg-mint-lighter/10 text-mint-green font-medium transition-all duration-200 flex items-center justify-center gap-2"
+          className="mt-6 w-full py-4 rounded-xl border-2 border-dashed border-mint-green hover:bg-mint-lighter/20 text-mint-green font-medium transition-all duration-200 flex items-center justify-center gap-2"
         >
           <svg
             className="w-5 h-5"

@@ -53,11 +53,11 @@ export default function TaskList({
   };
 
   return (
-    <div className="bg-white dark:bg-card-bg rounded-2xl shadow-sm border border-border p-6">
+    <div className="bg-white rounded-2xl shadow-sm border border-border p-6">
       <div className="flex items-center gap-3 mb-6">
         <div className="w-1 h-8 rounded-full bg-gradient-to-b from-mint-green to-pastel-blue"></div>
         <h2 className="text-2xl font-bold text-foreground">タスクリスト</h2>
-        <div className="ml-auto px-3 py-1 rounded-full bg-mint-lighter dark:bg-mint-lighter/10 text-sm font-medium text-mint-green">
+        <div className="ml-auto px-3 py-1 rounded-full bg-mint-lighter text-sm font-medium text-mint-green">
           {tasks.filter((t) => t.state !== "done").length} 件
         </div>
       </div>
@@ -69,7 +69,7 @@ export default function TaskList({
             type="text"
             name="title"
             placeholder="新しいタスクを追加..."
-            className="flex-1 px-4 py-3 rounded-xl border-2 border-border bg-gray-50 dark:bg-gray-800 focus:border-mint-green focus:bg-white dark:focus:bg-card-bg outline-none transition-all duration-200 placeholder:text-gray-400"
+            className="flex-1 px-4 py-3 rounded-xl border-2 border-border bg-gray-50 focus:border-mint-green focus:bg-white outline-none transition-all duration-200 placeholder:text-gray-400"
           />
           <button
             type="submit"
@@ -106,7 +106,7 @@ export default function TaskList({
           tasks.map((task) => (
             <div
               key={task.id}
-              className="group relative flex items-center gap-3 p-4 rounded-xl border-2 border-border hover:border-mint-green bg-gray-50/50 dark:bg-gray-800/50 hover:bg-white dark:hover:bg-card-bg transition-all duration-200"
+              className="group relative flex items-center gap-3 p-4 rounded-xl border-2 border-border hover:border-mint-green bg-gray-50/50 hover:bg-white transition-all duration-200"
             >
               {/* 状態ボタン */}
               <button
