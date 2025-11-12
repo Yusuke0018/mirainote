@@ -1,7 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAuth } from "@/lib/auth";
 import { Block, UpdateBlockInput } from "@/lib/schemas";
-import { assertNoOverlap, col, getById, updateDoc, OverlapError } from "@/lib/firestore";
+import {
+  assertNoOverlap,
+  col,
+  getById,
+  updateDoc,
+  OverlapError,
+} from "@/lib/firestore";
 
 export async function PATCH(
   req: NextRequest,
@@ -29,7 +35,9 @@ export async function PATCH(
     const isOverlap = e instanceof OverlapError;
     const err = e as { status?: number; message?: string };
     const status = isOverlap ? 409 : err?.status || 500;
-    const message = isOverlap ? "Block overlaps existing block" : err?.message || "Unknown error";
+    const message = isOverlap
+      ? "Block overlaps existing block"
+      : err?.message || "Unknown error";
     return NextResponse.json({ error: message }, { status });
   }
 }
@@ -49,6 +57,9 @@ export async function DELETE(
   } catch (e: unknown) {
     const err = e as { status?: number; message?: string };
     const status = err?.status || 500;
-    return NextResponse.json({ error: err?.message || "Unknown error" }, { status });
+    return NextResponse.json(
+      { error: err?.message || "Unknown error" },
+      { status },
+    );
   }
 }

@@ -1,9 +1,9 @@
-'use client';
+"use client";
 
 interface Task {
   id: string;
   title: string;
-  state: 'todo' | 'doing' | 'done';
+  state: "todo" | "doing" | "done";
   estimateMinutes?: number;
 }
 
@@ -23,32 +23,32 @@ export default function TaskList({
   const handleAddTask = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
-    const title = formData.get('title') as string;
+    const title = formData.get("title") as string;
     if (title.trim()) {
       onTaskAdd(title.trim());
       e.currentTarget.reset();
     }
   };
 
-  const getStateColor = (state: Task['state']) => {
+  const getStateColor = (state: Task["state"]) => {
     switch (state) {
-      case 'todo':
-        return 'bg-pastel-blue/30 border-pastel-blue text-pastel-blue';
-      case 'doing':
-        return 'bg-pastel-yellow/30 border-pastel-yellow text-warning';
-      case 'done':
-        return 'bg-mint-light/30 border-mint-green text-success';
+      case "todo":
+        return "bg-pastel-blue/30 border-pastel-blue text-pastel-blue";
+      case "doing":
+        return "bg-pastel-yellow/30 border-pastel-yellow text-warning";
+      case "done":
+        return "bg-mint-light/30 border-mint-green text-success";
     }
   };
 
-  const getStateLabel = (state: Task['state']) => {
+  const getStateLabel = (state: Task["state"]) => {
     switch (state) {
-      case 'todo':
-        return '未着手';
-      case 'doing':
-        return '作業中';
-      case 'done':
-        return '完了';
+      case "todo":
+        return "未着手";
+      case "doing":
+        return "作業中";
+      case "done":
+        return "完了";
     }
   };
 
@@ -58,7 +58,7 @@ export default function TaskList({
         <div className="w-1 h-8 rounded-full bg-gradient-to-b from-mint-green to-pastel-blue"></div>
         <h2 className="text-2xl font-bold text-foreground">タスクリスト</h2>
         <div className="ml-auto px-3 py-1 rounded-full bg-mint-lighter dark:bg-mint-lighter/10 text-sm font-medium text-mint-green">
-          {tasks.filter((t) => t.state !== 'done').length} 件
+          {tasks.filter((t) => t.state !== "done").length} 件
         </div>
       </div>
 
@@ -73,7 +73,7 @@ export default function TaskList({
           />
           <button
             type="submit"
-            className="px-6 py-3 rounded-xl bg-gradient-to-r from-mint-green to-pastel-blue text-white font-medium hover:shadow-lg hover:scale-105 transition-all duration-200"
+            className="px-6 py-3 rounded-xl bg-gradient-to-r from-mint-green to-mint-light text-white font-medium hover:shadow-lg hover:scale-105 transition-all duration-200"
           >
             追加
           </button>
@@ -98,7 +98,9 @@ export default function TaskList({
               />
             </svg>
             <p className="text-lg font-medium">タスクがありません</p>
-            <p className="text-sm mt-1">上のフォームから新しいタスクを追加しましょう</p>
+            <p className="text-sm mt-1">
+              上のフォームから新しいタスクを追加しましょう
+            </p>
           </div>
         ) : (
           tasks.map((task) => (
@@ -110,11 +112,11 @@ export default function TaskList({
               <button
                 onClick={() => {
                   const nextState =
-                    task.state === 'todo'
-                      ? 'doing'
-                      : task.state === 'doing'
-                        ? 'done'
-                        : 'todo';
+                    task.state === "todo"
+                      ? "doing"
+                      : task.state === "doing"
+                        ? "done"
+                        : "todo";
                   onTaskUpdate(task.id, { state: nextState });
                 }}
                 className={`flex-shrink-0 px-3 py-1.5 rounded-lg text-xs font-bold border-2 transition-all duration-200 hover:scale-105 ${getStateColor(task.state)}`}
@@ -125,7 +127,7 @@ export default function TaskList({
               {/* タイトル */}
               <div className="flex-1">
                 <p
-                  className={`font-medium ${task.state === 'done' ? 'line-through text-gray-400' : 'text-foreground'}`}
+                  className={`font-medium ${task.state === "done" ? "line-through text-gray-400" : "text-foreground"}`}
                 >
                   {task.title}
                 </p>

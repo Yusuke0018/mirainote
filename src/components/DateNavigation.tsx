@@ -1,6 +1,6 @@
-'use client';
+"use client";
 
-import { DateTime } from 'luxon';
+import { DateTime } from "luxon";
 
 interface DateNavigationProps {
   currentDate: DateTime;
@@ -23,7 +23,7 @@ export default function DateNavigation({
     onDateChange(DateTime.now());
   };
 
-  const isToday = currentDate.hasSame(DateTime.now(), 'day');
+  const isToday = currentDate.hasSame(DateTime.now(), "day");
 
   return (
     <div className="bg-white dark:bg-card-bg rounded-2xl shadow-sm border border-border p-6 mb-6">
@@ -49,11 +49,11 @@ export default function DateNavigation({
         </button>
 
         <div className="flex flex-col items-center gap-2">
-          <div className="text-3xl font-bold bg-gradient-to-r from-mint-green to-pastel-blue bg-clip-text text-transparent">
-            {currentDate.toFormat('yyyy年M月d日')}
+          <div className="text-3xl font-bold bg-gradient-to-r from-mint-green to-mint-light bg-clip-text text-transparent">
+            {currentDate.toFormat("yyyy年M月d日")}
           </div>
           <div className="text-sm text-gray-500 dark:text-gray-400 font-medium">
-            {currentDate.toFormat('cccc', { locale: 'ja' })}
+            {currentDate.toFormat("cccc", { locale: "ja" })}
           </div>
           {!isToday && (
             <button

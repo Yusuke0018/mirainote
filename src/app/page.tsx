@@ -1,43 +1,48 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { DateTime } from 'luxon';
-import DateNavigation from '@/components/DateNavigation';
-import TaskList from '@/components/TaskList';
-import Timeline from '@/components/Timeline';
+import { useState } from "react";
+import { DateTime } from "luxon";
+import DateNavigation from "@/components/DateNavigation";
+import TaskList from "@/components/TaskList";
+import Timeline from "@/components/Timeline";
 
 export default function Home() {
-  type UITask = { id: string; title: string; state: 'todo' | 'doing' | 'done'; estimateMinutes?: number };
+  type UITask = {
+    id: string;
+    title: string;
+    state: "todo" | "doing" | "done";
+    estimateMinutes?: number;
+  };
   const [currentDate, setCurrentDate] = useState(DateTime.now());
   const [tasks, setTasks] = useState<UITask[]>([
     {
-      id: '1',
-      title: 'サンプルタスク1',
-      state: 'todo' as const,
+      id: "1",
+      title: "サンプルタスク1",
+      state: "todo" as const,
       estimateMinutes: 30,
     },
     {
-      id: '2',
-      title: 'サンプルタスク2',
-      state: 'doing' as const,
+      id: "2",
+      title: "サンプルタスク2",
+      state: "doing" as const,
       estimateMinutes: 60,
     },
   ]);
 
   const [blocks, setBlocks] = useState([
     {
-      id: '1',
-      title: '朝の作業',
-      start: DateTime.now().startOf('day').plus({ hours: 9 }).toMillis(),
-      end: DateTime.now().startOf('day').plus({ hours: 12 }).toMillis(),
+      id: "1",
+      title: "朝の作業",
+      start: DateTime.now().startOf("day").plus({ hours: 9 }).toMillis(),
+      end: DateTime.now().startOf("day").plus({ hours: 12 }).toMillis(),
     },
   ]);
 
   const [intermissions] = useState([
     {
-      id: '1',
-      start: DateTime.now().startOf('day').plus({ hours: 12 }).toMillis(),
-      end: DateTime.now().startOf('day').plus({ hours: 13 }).toMillis(),
+      id: "1",
+      start: DateTime.now().startOf("day").plus({ hours: 12 }).toMillis(),
+      end: DateTime.now().startOf("day").plus({ hours: 13 }).toMillis(),
     },
   ]);
 
@@ -50,17 +55,16 @@ export default function Home() {
     const newTask: UITask = {
       id: Date.now().toString(),
       title,
-      state: 'todo' as const,
+      state: "todo" as const,
     };
     setTasks([...tasks, newTask]);
     // TODO: API経由でタスクを作成
   };
 
-  const handleTaskUpdate = (
-    id: string,
-    updates: Partial<UITask>,
-  ) => {
-    setTasks(tasks.map((task) => (task.id === id ? { ...task, ...updates } : task)));
+  const handleTaskUpdate = (id: string, updates: Partial<UITask>) => {
+    setTasks(
+      tasks.map((task) => (task.id === id ? { ...task, ...updates } : task)),
+    );
     // TODO: API経由でタスクを更新
   };
 
@@ -72,7 +76,7 @@ export default function Home() {
   const handleBlockAdd = (start: number, end: number, title?: string) => {
     const newBlock = {
       id: Date.now().toString(),
-      title: title || '新しいブロック',
+      title: title || "新しいブロック",
       start,
       end,
     };
@@ -81,7 +85,7 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-mint-lighter/30 via-background to-pastel-blue/20 dark:from-gray-900 dark:via-black dark:to-gray-900">
+    <div className="min-h-screen bg-gradient-to-b from-white via-white to-mint-lighter/20 dark:from-gray-900 dark:via-black dark:to-gray-900">
       {/* ヘッダー */}
       <header className="sticky top-0 z-50 backdrop-blur-lg bg-white/80 dark:bg-card-bg/80 border-b border-border shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
@@ -102,7 +106,7 @@ export default function Home() {
                   />
                 </svg>
               </div>
-              <h1 className="text-2xl font-bold bg-gradient-to-r from-mint-green via-pastel-blue to-pastel-lavender bg-clip-text text-transparent">
+              <h1 className="text-2xl font-bold bg-gradient-to-r from-mint-green to-mint-light bg-clip-text text-transparent">
                 みらいノート
               </h1>
             </div>
@@ -118,7 +122,10 @@ export default function Home() {
       {/* メインコンテンツ */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* 日付ナビゲーション */}
-        <DateNavigation currentDate={currentDate} onDateChange={handleDateChange} />
+        <DateNavigation
+          currentDate={currentDate}
+          onDateChange={handleDateChange}
+        />
 
         {/* グリッドレイアウト */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

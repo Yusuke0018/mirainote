@@ -1,6 +1,6 @@
-'use client';
+"use client";
 
-import { DateTime } from 'luxon';
+import { DateTime } from "luxon";
 
 interface Block {
   id: string;
@@ -28,7 +28,7 @@ export default function Timeline({
   onBlockAdd,
 }: TimelineProps) {
   const formatTime = (timestamp: number) => {
-    return DateTime.fromMillis(timestamp).toFormat('HH:mm');
+    return DateTime.fromMillis(timestamp).toFormat("HH:mm");
   };
 
   const getDuration = (start: number, end: number) => {
@@ -46,9 +46,9 @@ export default function Timeline({
   return (
     <div className="bg-white dark:bg-card-bg rounded-2xl shadow-sm border border-border p-6">
       <div className="flex items-center gap-3 mb-6">
-        <div className="w-1 h-8 rounded-full bg-gradient-to-b from-pastel-lavender to-pastel-peach"></div>
+        <div className="w-1 h-8 rounded-full bg-gradient-to-b from-mint-green to-mint-light"></div>
         <h2 className="text-2xl font-bold text-foreground">タイムライン</h2>
-        <div className="ml-auto px-3 py-1 rounded-full bg-pastel-lavender/20 text-sm font-medium text-pastel-lavender">
+        <div className="ml-auto px-3 py-1 rounded-full bg-mint-lighter text-sm font-medium text-mint-green">
           {blocks.length} ブロック
         </div>
       </div>
@@ -85,7 +85,9 @@ export default function Timeline({
                 />
               </svg>
               <p className="text-lg font-medium">ブロックがありません</p>
-              <p className="text-sm mt-1">時間ブロックを追加して予定を管理しましょう</p>
+              <p className="text-sm mt-1">
+                時間ブロックを追加して予定を管理しましょう
+              </p>
             </div>
           ) : (
             <>
@@ -101,7 +103,7 @@ export default function Timeline({
                       休憩時間
                     </p>
                     <p className="text-xs text-gray-400 mt-1">
-                      {formatTime(intermission.start)} -{' '}
+                      {formatTime(intermission.start)} -{" "}
                       {formatTime(intermission.end)} (
                       {getDuration(intermission.start, intermission.end)})
                     </p>
@@ -112,11 +114,11 @@ export default function Timeline({
               {/* Blocks */}
               {blocks.map((block, index) => {
                 const colors = [
-                  'bg-mint-green/20 border-mint-green',
-                  'bg-pastel-pink/20 border-pastel-pink',
-                  'bg-pastel-blue/20 border-pastel-blue',
-                  'bg-pastel-lavender/20 border-pastel-lavender',
-                  'bg-pastel-peach/20 border-pastel-peach',
+                  "bg-mint-green/20 border-mint-green",
+                  "bg-pastel-pink/20 border-pastel-pink",
+                  "bg-pastel-blue/20 border-pastel-blue",
+                  "bg-pastel-lavender/20 border-pastel-lavender",
+                  "bg-pastel-peach/20 border-pastel-peach",
                 ];
                 const colorClass = colors[index % colors.length];
 
@@ -126,11 +128,11 @@ export default function Timeline({
                     className={`flex items-center gap-3 p-4 rounded-xl border-2 ${colorClass} hover:scale-[1.02] transition-all duration-200 cursor-move`}
                   >
                     <div
-                      className={`flex-shrink-0 w-2 h-12 rounded-full ${colorClass.split(' ')[1].replace('border-', 'bg-')}`}
+                      className={`flex-shrink-0 w-2 h-12 rounded-full ${colorClass.split(" ")[1].replace("border-", "bg-")}`}
                     ></div>
                     <div className="flex-1">
                       <p className="font-medium text-foreground">
-                        {block.title || '無題のブロック'}
+                        {block.title || "無題のブロック"}
                       </p>
                       <p className="text-xs text-gray-500 mt-1">
                         {formatTime(block.start)} - {formatTime(block.end)} (
@@ -149,13 +151,18 @@ export default function Timeline({
           onClick={() => {
             // デモ用: 現在時刻から1時間のブロックを追加
             const now = DateTime.now();
-            const start = now.startOf('hour').toMillis();
-            const end = now.startOf('hour').plus({ hours: 1 }).toMillis();
-            onBlockAdd(start, end, '新しいブロック');
+            const start = now.startOf("hour").toMillis();
+            const end = now.startOf("hour").plus({ hours: 1 }).toMillis();
+            onBlockAdd(start, end, "新しいブロック");
           }}
           className="mt-6 w-full py-4 rounded-xl border-2 border-dashed border-mint-green hover:bg-mint-lighter/20 dark:hover:bg-mint-lighter/10 text-mint-green font-medium transition-all duration-200 flex items-center justify-center gap-2"
         >
-          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <svg
+            className="w-5 h-5"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
             <path
               strokeLinecap="round"
               strokeLinejoin="round"

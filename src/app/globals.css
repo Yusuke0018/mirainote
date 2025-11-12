@@ -2,39 +2,39 @@
 
 :root {
   /* パステルカラーパレット（ミントグリーン中心） */
-  --mint-green: #98D8C8;
-  --mint-light: #C8E9DD;
-  --mint-lighter: #E8F6F2;
+  --mint-green: #98d8c8;
+  --mint-light: #c8e9dd;
+  --mint-lighter: #e8f6f2;
 
-  --pastel-pink: #FFD1DC;
-  --pastel-blue: #AEC6CF;
-  --pastel-lavender: #D5AAFF;
-  --pastel-peach: #FFE5B4;
-  --pastel-yellow: #FFEAA7;
+  --pastel-pink: #ffd1dc;
+  --pastel-blue: #aec6cf;
+  --pastel-lavender: #d5aaff;
+  --pastel-peach: #ffe5b4;
+  --pastel-yellow: #ffeaa7;
 
-  /* ベースカラー */
-  --background: #FAFCFC;
-  --foreground: #2C3E50;
-  --card-bg: #FFFFFF;
-  --border: #E0F2F1;
+  /* ベースカラー（白基調） */
+  --background: #ffffff;
+  --foreground: #2c3e50;
+  --card-bg: #ffffff;
+  --border: #e0f2f1;
 
   /* 状態カラー */
-  --success: #7DCEA0;
-  --warning: #F8B500;
-  --error: #FF8B94;
-  --info: #89CFF0;
+  --success: #7dcea0;
+  --warning: #f8b500;
+  --error: #ff8b94;
+  --info: #89cff0;
 
   /* グレースケール */
-  --gray-50: #F8FAFB;
-  --gray-100: #F1F5F7;
-  --gray-200: #E5EEF1;
-  --gray-300: #D1E0E5;
-  --gray-400: #A8BFC7;
-  --gray-500: #7A8E96;
-  --gray-600: #5A6C75;
-  --gray-700: #3E4C54;
-  --gray-800: #2C3840;
-  --gray-900: #1A2228;
+  --gray-50: #f8fafb;
+  --gray-100: #f1f5f7;
+  --gray-200: #e5eef1;
+  --gray-300: #d1e0e5;
+  --gray-400: #a8bfc7;
+  --gray-500: #7a8e96;
+  --gray-600: #5a6c75;
+  --gray-700: #3e4c54;
+  --gray-800: #2c3840;
+  --gray-900: #1a2228;
 }
 
 @theme inline {
@@ -62,29 +62,40 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0F1419;
-    --foreground: #E8F6F2;
-    --card-bg: #1A2228;
-    --border: #2C3840;
+    --background: #0f1419;
+    --foreground: #e8f6f2;
+    --card-bg: #1a2228;
+    --border: #2c3840;
 
-    --mint-green: #6BB6A6;
-    --mint-light: #4A9586;
-    --mint-lighter: #2F6B5F;
+    /* ダークでもミント主体を維持（やや落ち着いたトーン） */
+    --mint-green: #66b8a7;
+    --mint-light: #4aa694;
+    --mint-lighter: #2f6b5f;
   }
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-geist-sans), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  font-feature-settings: "kern" 1, "liga" 1;
+  font-family:
+    var(--font-geist-sans),
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
+  font-feature-settings:
+    "kern" 1,
+    "liga" 1;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
 /* スムーズなトランジション */
 * {
-  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+  transition:
+    background-color 0.2s ease,
+    border-color 0.2s ease,
+    color 0.2s ease;
 }
 
 /* スクロールバースタイル */

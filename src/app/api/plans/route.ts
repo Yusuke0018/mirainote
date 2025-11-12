@@ -29,7 +29,10 @@ export async function GET(req: NextRequest) {
   } catch (e: unknown) {
     const err = e as { status?: number; message?: string };
     const status = err?.status || 500;
-    return NextResponse.json({ error: err?.message || "Unknown error" }, { status });
+    return NextResponse.json(
+      { error: err?.message || "Unknown error" },
+      { status },
+    );
   }
 }
 
@@ -81,6 +84,9 @@ export async function POST(req: NextRequest) {
   } catch (e: unknown) {
     const err = e as { status?: number; message?: string };
     const status = err?.status || 500;
-    return NextResponse.json({ error: err?.message || "Unknown error" }, { status });
+    return NextResponse.json(
+      { error: err?.message || "Unknown error" },
+      { status },
+    );
   }
 }

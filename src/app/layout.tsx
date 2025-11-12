@@ -14,7 +14,8 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "みらいノート - あなたの未来を計画する",
-  description: "タスク管理とスケジュール管理を一つにまとめた、スタイリッシュで使いやすいアプリケーション",
+  description:
+    "タスク管理とスケジュール管理を一つにまとめた、スタイリッシュで使いやすいアプリケーション",
 };
 
 export default function RootLayout({
