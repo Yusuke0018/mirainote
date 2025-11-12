@@ -39,6 +39,7 @@ export default function Home() {
     state: "todo" | "doing" | "done";
     estimateMinutes?: number;
     order?: number;
+    timingNote?: string;
   };
   const [currentDate, setCurrentDate] = useState(DateTime.now());
   const [planId, setPlanId] = useState<string | null>(null);
@@ -191,6 +192,7 @@ export default function Home() {
           state: t.state as UITask["state"],
           estimateMinutes: t.estimateMinutes,
           order: (t as unknown as { order?: number }).order,
+          timingNote: (t as unknown as { timingNote?: string }).timingNote,
         })),
       );
       let nextBlocks = bundle.blocks.map((b) => ({
@@ -256,17 +258,22 @@ export default function Home() {
 
   const handleDateChange = (date: DateTime) => setCurrentDate(date);
 
-  const handleTaskAdd = async (title: string) => {
+  const handleTaskAdd = async (title: string, timingNote?: string) => {
     if (!isTomorrowPlan) {
       setMessage("タスクは明日の約束としてのみ追加できます。日付を明日に変更してください。");
       return;
     }
     if (!planId) return;
     const tempId = `tmp-${Date.now()}`;
-    const optimistic: UITask = { id: tempId, title, state: "todo" };
+    const optimistic: UITask = {
+      id: tempId,
+      title,
+      state: "todo",
+      timingNote,
+    };
     setTasks((prev) => [...prev, optimistic]);
     try {
-      const { task } = await apiCreateTask({ planId, title });
+      const { task } = await apiCreateTask({ planId, title, timingNote });
       setTasks((prev) =>
         prev.map((t) =>
           t.id === tempId
@@ -275,6 +282,7 @@ export default function Home() {
                 title: task.title,
                 state: task.state as UITask["state"],
                 estimateMinutes: task.estimateMinutes,
+                timingNote: (task as { timingNote?: string }).timingNote,
               }
             : t,
         ),
@@ -313,6 +321,7 @@ export default function Home() {
       state?: UITask["state"];
       estimateMinutes?: number;
       goalId?: string;
+      timingNote?: string;
     } = {};
     if (updates.title !== undefined) patch.title = updates.title;
     if (updates.state !== undefined) patch.state = updates.state;
@@ -320,6 +329,9 @@ export default function Home() {
       patch.estimateMinutes = updates.estimateMinutes;
     if ((updates as { goalId?: string }).goalId !== undefined) {
       patch.goalId = (updates as { goalId?: string }).goalId;
+    }
+    if ((updates as { timingNote?: string }).timingNote !== undefined) {
+      patch.timingNote = (updates as { timingNote?: string }).timingNote;
     }
 
     const linkedBlock = blocks.find((b) => b.taskId === id);

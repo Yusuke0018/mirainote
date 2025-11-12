@@ -24,6 +24,7 @@ export const Task = BaseDoc.extend({
   order: z.number().int().min(0).default(0),
   state: TaskState.default("todo"),
   goalId: z.string().optional(),
+  timingNote: z.string().max(200).optional(),
 });
 export type Task = z.infer<typeof Task>;
 
@@ -145,6 +146,7 @@ export const CreateTaskInput = z.object({
   estimateMinutes: z.number().int().min(0).optional(),
   order: z.number().int().min(0).optional(),
   goalId: z.string().optional(),
+  timingNote: z.string().max(200).optional(),
 });
 export type CreateTaskInput = z.infer<typeof CreateTaskInput>;
 
@@ -154,6 +156,7 @@ export const UpdateTaskInput = z.object({
   order: z.number().int().min(0).optional(),
   state: TaskState.optional(),
   goalId: z.string().optional(),
+  timingNote: z.string().max(200).optional(),
 });
 export type UpdateTaskInput = z.infer<typeof UpdateTaskInput>;
 

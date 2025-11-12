@@ -9,12 +9,13 @@ interface Task {
   estimateMinutes?: number;
   goalId?: string;
   order?: number;
+  timingNote?: string;
 }
 
 interface TaskListProps {
   tasks: Task[];
   goals?: { id: string; title: string }[];
-  onTaskAdd: (title: string) => void;
+  onTaskAdd: (title: string, timingNote?: string) => void;
   onTaskUpdate: (id: string, updates: Partial<Task>) => void;
   onTaskDelete: (id: string) => void;
   onTaskReorder?: (id: string, direction: "up" | "down") => void;
@@ -39,8 +40,9 @@ export default function TaskList({
     if (!canAddTomorrow) return;
     const formData = new FormData(e.currentTarget);
     const title = formData.get("title") as string;
+    const timingNote = (formData.get("timingNote") as string) ?? "";
     if (title.trim()) {
-      onTaskAdd(title.trim());
+      onTaskAdd(title.trim(), timingNote.trim() || undefined);
       e.currentTarget.reset();
     }
   };
@@ -126,8 +128,8 @@ export default function TaskList({
       </div>
 
       {/* タスク追加フォーム */}
-      <form onSubmit={handleAddTask} className="mb-6">
-        <div className="flex gap-2">
+      <form onSubmit={handleAddTask} className="mb-6 space-y-2">
+        <div className="flex flex-col sm:flex-row gap-2">
           <input
             type="text"
             name="title"
@@ -151,6 +153,13 @@ export default function TaskList({
             {canAddTomorrow ? "約束に追加" : "明日だけ追加可"}
           </button>
         </div>
+        <textarea
+          name="timingNote"
+          placeholder="いつやる？ 例: 朝イチ / 21時頃 / 打合せ後すぐ"
+          className="w-full px-4 py-2 rounded-xl border-2 border-border bg-gray-50 focus:border-charcoal focus:bg-white outline-none text-sm text-gray-800 disabled:opacity-60 disabled:cursor-not-allowed"
+          disabled={!canAddTomorrow}
+          rows={2}
+        />
         {!canAddTomorrow && (
           <p className="mt-2 text-xs text-gray-500">
             今日以降の約束はできません。日付を明日に変更してください。
@@ -184,7 +193,7 @@ export default function TaskList({
           sorted.map((task, idx) => (
             <div
               key={task.id}
-              className="group relative flex items-center gap-3 p-4 rounded-xl border-2 border-border hover:border-charcoal bg-gray-50/50 hover:bg-white transition-all duration-200"
+              className="group relative flex flex-col gap-3 p-4 rounded-xl border-2 border-border hover:border-charcoal bg-gray-50/50 hover:bg-white transition-all duration-200"
               draggable
               onDragStart={(e) => {
                 e.dataTransfer.setData("text/plain", task.id);
@@ -203,110 +212,108 @@ export default function TaskList({
                   onTaskReorderIndex(draggedId, idx);
               }}
             >
-              {/* 状態ボタン */}
-              <button
-                onClick={() => {
-                  const nextState =
-                    task.state === "todo"
-                      ? "doing"
-                      : task.state === "doing"
-                        ? "done"
-                        : "todo";
-                  onTaskUpdate(task.id, { state: nextState });
-                }}
-                className={`flex-shrink-0 px-3 py-1.5 rounded-lg text-xs font-bold border-2 transition-all duration-200 hover:scale-105 ${getStateColor(task.state)}`}
-              >
-                {getStateLabel(task.state)}
-              </button>
-
-              {/* タイトル・サブ情報 */}
-              <div className="flex-1">
-                <p
-                  className={`font-medium ${task.state === "done" ? "line-through text-gray-400" : "text-foreground"}`}
+              <div className="flex items-start gap-3">
+                <button
+                  onClick={() => {
+                    const nextState =
+                      task.state === "todo"
+                        ? "doing"
+                        : task.state === "doing"
+                          ? "done"
+                          : "todo";
+                    onTaskUpdate(task.id, { state: nextState });
+                  }}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold border-2 transition-all duration-200 hover:scale-105 ${getStateColor(task.state)}`}
                 >
-                  {task.title}
-                </p>
-                <div className="mt-2 flex items-center gap-4 text-xs text-gray-500 flex-wrap">
-                  <label className="flex items-center gap-2">
-                    <span>見積(分):</span>
-                    <input
-                      type="number"
-                      min={0}
-                      className="w-20 px-2 py-1 border border-border rounded bg-white text-gray-700"
-                      value={task.estimateMinutes ?? 0}
-                      onChange={(e) => {
-                        const next = Math.max(0, Number(e.target.value) || 0);
-                        onTaskUpdate(task.id, { estimateMinutes: next });
-                      }}
-                    />
-                  </label>
-                  {goals.length > 0 && (
-                    <div className="flex items-center gap-1">
-                      <label htmlFor={`goal-${task.id}`}>目標:</label>
-                      <select
-                        id={`goal-${task.id}`}
-                        className="px-2 py-1 rounded border border-border bg-white"
-                        value={task.goalId || ""}
-                        onChange={(e) =>
-                          onTaskUpdate(task.id, {
-                            goalId: e.target.value || undefined,
-                          })
-                        }
-                      >
-                        <option value="">未選択</option>
-                        {goals.map((g) => (
-                          <option key={g.id} value={g.id}>
-                            {g.title}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  )}
+                  {getStateLabel(task.state)}
+                </button>
+                <div className="flex-1 space-y-2">
+                  <p
+                    className={`font-medium ${task.state === "done" ? "line-through text-gray-400" : "text-foreground"}`}
+                  >
+                    {task.title}
+                  </p>
+                  <div className="flex items-center gap-4 text-xs text-gray-500 flex-wrap">
+                    <label className="flex items-center gap-2">
+                      <span>見積(分):</span>
+                      <input
+                        type="number"
+                        min={0}
+                        className="w-20 px-2 py-1 border border-border rounded bg-white text-gray-700"
+                        value={task.estimateMinutes ?? 0}
+                        onChange={(e) => {
+                          const next = Math.max(0, Number(e.target.value) || 0);
+                          onTaskUpdate(task.id, { estimateMinutes: next });
+                        }}
+                      />
+                    </label>
+                    {goals.length > 0 && (
+                      <div className="flex items-center gap-1">
+                        <label htmlFor={`goal-${task.id}`}>目標:</label>
+                        <select
+                          id={`goal-${task.id}`}
+                          className="px-2 py-1 rounded border border-border bg-white"
+                          value={task.goalId || ""}
+                          onChange={(e) =>
+                            onTaskUpdate(task.id, {
+                              goalId: e.target.value || undefined,
+                            })
+                          }
+                        >
+                          <option value="">未選択</option>
+                          {goals.map((g) => (
+                            <option key={g.id} value={g.id}>
+                              {g.title}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
 
-              {/* 削除ボタン */}
-              <button
-                onClick={() => onTaskDelete(task.id)}
-                className="flex-shrink-0 opacity-0 group-hover:opacity-100 w-8 h-8 rounded-lg bg-error/10 hover:bg-error/20 text-error transition-all duration-200 flex items-center justify-center"
-                aria-label="削除"
-              >
-                <svg
-                  className="w-4 h-4"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M6 18L18 6M6 6l12 12"
-                  />
-                </svg>
-              </button>
+              <textarea
+                defaultValue={task.timingNote || ""}
+                placeholder="いつ頃やる？（例: 朝イチ / 21時頃 / 打合せ後すぐ など）"
+                onBlur={(e) =>
+                  onTaskUpdate(task.id, {
+                    timingNote: e.currentTarget.value.trim() || undefined,
+                  })
+                }
+                className="w-full text-sm text-gray-700 border border-border rounded-lg bg-white/80 px-3 py-2 resize-none focus:border-charcoal focus:bg-white"
+                rows={2}
+              />
 
-              {/* 並べ替え */}
-              {onTaskReorder && (
-                <div className="flex flex-col gap-1 ml-2">
-                  <button
-                    title="上へ"
-                    disabled={idx === 0}
-                    onClick={() => onTaskReorder(task.id, "up")}
-                    className="w-8 h-6 rounded border border-border text-xs disabled:opacity-40"
-                  >
-                    ↑
-                  </button>
-                  <button
-                    title="下へ"
-                    disabled={idx === sorted.length - 1}
-                    onClick={() => onTaskReorder(task.id, "down")}
-                    className="w-8 h-6 rounded border border-border text-xs disabled:opacity-40"
-                  >
-                    ↓
-                  </button>
-                </div>
-              )}
+              <div className="flex items-center justify-between">
+                <button
+                  onClick={() => onTaskDelete(task.id)}
+                  className="px-3 py-1 rounded-lg bg-error/10 hover:bg-error/20 text-error text-sm transition-all duration-200"
+                  aria-label="削除"
+                >
+                  削除
+                </button>
+                {onTaskReorder && (
+                  <div className="flex gap-2">
+                    <button
+                      title="上へ"
+                      disabled={idx === 0}
+                      onClick={() => onTaskReorder(task.id, "up")}
+                      className="w-8 h-6 rounded border border-border text-xs disabled:opacity-40"
+                    >
+                      ↑
+                    </button>
+                    <button
+                      title="下へ"
+                      disabled={idx === sorted.length - 1}
+                      onClick={() => onTaskReorder(task.id, "down")}
+                      className="w-8 h-6 rounded border border-border text-xs disabled:opacity-40"
+                    >
+                      ↓
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
           ))
         )}
