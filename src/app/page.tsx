@@ -20,7 +20,6 @@ import {
   createBlock as apiCreateBlock,
   updateBlock as apiUpdateBlock,
   deleteBlock as apiDeleteBlock,
-  interruptSchedule,
   closeDay,
   listGoals,
   createGoal,
@@ -73,18 +72,11 @@ export default function Home() {
     { id: string; name: string; color: string }[]
   >([]);
   const [userEmail, setUserEmail] = useState<string | null>(null);
-  const [candidates, setCandidates] = useState<
-    | {
-        label: "today_end" | "tomorrow_morning" | "tomorrow_evening";
-        start: number;
-        end: number;
-      }[]
-    | null
-  >(null);
   const [checkinModal, setCheckinModal] = useState<{
     adherenceRate: number;
     carryOverCount: number;
   } | null>(null);
+  const showTimeline = false;
 
   const ymd = useMemo(() => currentDate.toFormat("yyyy-LL-dd"), [currentDate]);
   const tomorrowDate = DateTime.now().startOf("day").plus({ days: 1 });
@@ -503,56 +495,6 @@ export default function Home() {
     }
   };
 
-  const handleInterrupt = async () => {
-    if (!planId) return;
-    setLoading(true);
-    setMessage(null);
-    try {
-      const now = DateTime.now().toMillis();
-      const res = await interruptSchedule({
-        planId,
-        start: now,
-        duration: 30 * 60 * 1000,
-      });
-      setCandidates(
-        res.unplaced.length
-          ? (res.candidates as {
-              label: "today_end" | "tomorrow_morning" | "tomorrow_evening";
-              start: number;
-              end: number;
-            }[])
-          : null,
-      );
-      await fetchPlan(ymd);
-    } catch (err: unknown) {
-      const e = err as { message?: string };
-      setMessage(e?.message || "割り込み処理に失敗しました");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleAdopt = async (
-    label: "today_end" | "tomorrow_morning" | "tomorrow_evening",
-  ) => {
-    if (!planId) return;
-    setLoading(true);
-    setMessage(null);
-    try {
-      const res = await (
-        await import("@/lib/client")
-      ).adoptCandidates({ planId, label });
-      setCandidates(null);
-      await fetchPlan(ymd);
-      setMessage("候補を採用しました");
-    } catch (err: unknown) {
-      const e = err as { message?: string };
-      setMessage(e?.message || "候補の採用に失敗しました");
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleCloseDay = async () => {
     setLoading(true);
     setMessage(null);
@@ -573,13 +515,13 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-background">
       {/* ヘッダー */}
-      <header className="sticky top-0 z-50 backdrop-blur-lg bg-white/80 border-b border-border shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-mint-green to-pastel-blue flex items-center justify-center shadow-lg">
+      <header className="sticky top-0 z-50 backdrop-blur-lg bg-white/90 border-b border-border shadow-sm">
+        <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-3 sm:py-4">
+          <div className="flex items-center gap-3 sm:gap-4">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-br from-mint-green to-pastel-blue flex items-center justify-center shadow-lg">
                 <svg
-                  className="w-6 h-6 text-white"
+                  className="w-5 h-5 sm:w-6 sm:h-6 text-white"
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"
@@ -593,21 +535,23 @@ export default function Home() {
                 </svg>
               </div>
               <div className="flex flex-col">
-                <h1 className="text-2xl font-bold bg-gradient-to-r from-mint-green to-mint-light bg-clip-text text-transparent">
+                <h1 className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-mint-green to-mint-light bg-clip-text text-transparent">
                   みらいノート
                 </h1>
-                <span className="text-xs text-gray-500">
+                <span className="text-[11px] sm:text-xs text-gray-500">
                   計画と実行を、やさしく整える
                 </span>
               </div>
             </div>
-            <div className="ml-auto flex items-center gap-2">
+            <div className="ml-auto flex items-center gap-2 sm:gap-3">
               {userEmail ? (
                 <>
-                  <span className="text-sm text-gray-600">{userEmail}</span>
+                  <span className="text-xs sm:text-sm text-gray-600">
+                    {userEmail}
+                  </span>
                   <button
                     onClick={() => signOutUser()}
-                    className="px-3 py-2 rounded-lg border border-border hover:bg-gray-50 font-medium transition-all duration-200"
+                    className="px-3 py-1.5 rounded-lg border border-border text-xs sm:text-sm hover:bg-gray-50 font-medium transition-all duration-200"
                   >
                     ログアウト
                   </button>
@@ -615,20 +559,14 @@ export default function Home() {
               ) : (
                 <button
                   onClick={() => signInWithGoogle()}
-                  className="px-3 py-2 rounded-lg bg-mint-lighter text-mint-green hover:bg-mint-light font-medium transition-all duration-200"
+                  className="px-3 py-1.5 rounded-lg bg-mint-lighter text-mint-green hover:bg-mint-light font-medium transition-all duration-200 text-xs sm:text-sm"
                 >
                   Googleでログイン
                 </button>
               )}
               <button
-                onClick={handleInterrupt}
-                className="px-3 py-2 rounded-lg bg-mint-lighter text-mint-green hover:bg-mint-light font-medium transition-all duration-200"
-              >
-                今すぐ割り込み(30分)
-              </button>
-              <button
                 onClick={handleCloseDay}
-                className="px-3 py-2 rounded-lg border border-border hover:bg-gray-50 font-medium transition-all duration-200"
+                className="px-3 py-1.5 rounded-lg border border-border text-xs sm:text-sm hover:bg-gray-50 font-medium transition-all duration-200"
               >
                 今日をクローズ
               </button>
@@ -774,48 +712,14 @@ export default function Home() {
           </div>
         )}
 
-        {candidates && candidates.length > 0 && (
-          <div className="mb-6 p-4 rounded-lg border border-dashed border-mint-green bg-mint-lighter/40">
-            <div className="font-medium mb-2 text-foreground">候補スロット</div>
-            <div className="flex gap-2 flex-wrap">
-              {candidates.map((c) => (
-                <button
-                  key={c.label}
-                  onClick={() => handleAdopt(c.label)}
-                  className="px-3 py-2 rounded-lg border border-mint-green text-mint-green hover:bg-white text-sm"
-                >
-                  {c.label === "today_end"
-                    ? "当日末"
-                    : c.label === "tomorrow_morning"
-                      ? "翌朝"
-                      : "翌日夜"}{" "}
-                  を採用
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
         {/* グリッドレイアウト */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
-          {/* タイムライン（モバイル先頭） */}
-          <div className="order-1 lg:order-2">
-            <Timeline
-              tasks={tasks}
-              planDate={ymd}
-              blocks={blocks}
-              intermissions={intermissions}
-              onBlockShift={handleBlockShift}
-              onBlockDelete={handleBlockDelete}
-              onBlockMoveTo={handleBlockMoveTo}
-              onBlockAdd={(start, end, title) =>
-                handleBlockAdd(start, end, title)
-              }
-            />
-          </div>
-
-          {/* タスクリスト */}
-          <div className="order-2 lg:order-1">
+        <div
+          className={`grid grid-cols-1 gap-4 lg:gap-6 ${
+            showTimeline ? "lg:grid-cols-2" : ""
+          }`}
+        >
+          {/* タスク */}
+          <div className={showTimeline ? "order-2 lg:order-1" : ""}>
             <TaskList
               tasks={tasks}
               goals={goals}
@@ -887,6 +791,24 @@ export default function Home() {
               }}
             />
           </div>
+
+          {/* タイムライン（必要なときだけ表示） */}
+          {showTimeline && (
+            <div className="order-1 lg:order-2">
+              <Timeline
+                tasks={tasks}
+                planDate={ymd}
+                blocks={blocks}
+                intermissions={intermissions}
+                onBlockShift={handleBlockShift}
+                onBlockDelete={handleBlockDelete}
+                onBlockMoveTo={handleBlockMoveTo}
+                onBlockAdd={(start, end, title) =>
+                  handleBlockAdd(start, end, title)
+                }
+              />
+            </div>
+          )}
         </div>
 
         {/* 目標はトップへ移設 */}
