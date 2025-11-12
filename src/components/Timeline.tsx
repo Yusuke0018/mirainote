@@ -57,11 +57,11 @@ export default function Timeline({
     : DateTime.now().startOf("day");
 
   return (
-    <div className="bg-white rounded-2xl shadow-sm border border-border p-6">
+    <div className="bg-white/95 backdrop-blur rounded-2xl shadow-md border border-border p-6">
       <div className="flex items-center gap-3 mb-6">
-        <div className="w-1 h-8 rounded-full bg-gradient-to-b from-mint-green to-mint-light"></div>
-        <h2 className="text-2xl font-bold text-foreground">タイムライン</h2>
-        <div className="ml-auto px-3 py-1 rounded-full bg-mint-lighter text-sm font-medium text-mint-green">
+        <div className="w-1 h-8 rounded-full bg-gradient-to-b from-ink via-charcoal to-pastel-blue"></div>
+        <h2 className="text-2xl font-bold text-ink tracking-tight">タイムライン</h2>
+        <div className="ml-auto px-3 py-1 rounded-full bg-charcoal text-white text-sm font-semibold shadow-sm">
           {blocks.length} ブロック
         </div>
       </div>
@@ -136,7 +136,7 @@ export default function Timeline({
               {intermissions.map((intermission) => (
                 <div
                   key={intermission.id}
-                  className="flex items-center gap-3 p-4 rounded-xl border-2 border-dashed border-gray-300 bg-gray-50/50"
+                  className="flex items-center gap-3 p-4 rounded-xl border-2 border-dashed border-gray-300 bg-pastel-mist/60"
                 >
                   <div className="flex-shrink-0 w-2 h-12 rounded-full bg-gray-400"></div>
                   <div className="flex-1">
@@ -155,11 +155,12 @@ export default function Timeline({
               {/* Blocks */}
               {blocks.map((block, index) => {
                 const colors = [
-                  "bg-mint-green/10 border-mint-green",
-                  "bg-pastel-pink/10 border-pastel-pink",
-                  "bg-pastel-blue/10 border-pastel-blue",
-                  "bg-pastel-lavender/10 border-pastel-lavender",
-                  "bg-pastel-peach/10 border-pastel-peach",
+                  "bg-ink/10 border-ink",
+                  "bg-charcoal/10 border-charcoal",
+                  "bg-pastel-blue/30 border-pastel-blue",
+                  "bg-pastel-pink/30 border-pastel-pink",
+                  "bg-pastel-lavender/30 border-pastel-lavender",
+                  "bg-pastel-peach/30 border-pastel-peach",
                 ];
                 const colorClass = colors[index % colors.length];
 
@@ -178,7 +179,9 @@ export default function Timeline({
                     }}
                   >
                     <div
-                      className={`flex-shrink-0 w-2 h-12 rounded-full ${colorClass.split(" ")[1].replace("border-", "bg-")}`}
+                      className={`flex-shrink-0 w-2 h-12 rounded-full ${colorClass
+                        .split(" ")[1]
+                        .replace("border-", "bg-")}`}
                     ></div>
                     <div className="flex-1">
                       <p className="font-medium text-foreground">
@@ -239,7 +242,7 @@ export default function Timeline({
             const end = dayStart.plus({ hours: targetHour + 1 }).toMillis();
             onBlockAdd(start, end, "新しいブロック");
           }}
-          className="mt-6 w-full py-4 rounded-xl border-2 border-dashed border-mint-green hover:bg-mint-lighter/20 text-mint-green font-medium transition-all duration-200 flex items-center justify-center gap-2"
+          className="mt-6 w-full py-4 rounded-xl border-2 border-dashed border-ink hover:bg-gray-50 text-ink font-medium transition-all duration-200 flex items-center justify-center gap-2"
         >
           <svg
             className="w-5 h-5"

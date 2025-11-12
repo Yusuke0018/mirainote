@@ -66,11 +66,11 @@ export default function GoalsPanel({
   };
 
   return (
-    <div className="bg-white rounded-2xl shadow-sm border border-border p-6">
+    <div className="bg-white/95 backdrop-blur rounded-2xl shadow-md border border-border p-6">
       <div className="flex items-center gap-3 mb-6">
-        <div className="w-1 h-8 rounded-full bg-gradient-to-b from-mint-green to-mint-light"></div>
-        <h2 className="text-2xl font-bold text-foreground">目標</h2>
-        <div className="ml-auto px-3 py-1 rounded-full bg-mint-lighter text-sm font-medium text-mint-green">
+        <div className="w-1 h-8 rounded-full bg-gradient-to-b from-ink via-charcoal to-graphite"></div>
+        <h2 className="text-2xl font-bold text-ink tracking-tight">目標</h2>
+        <div className="ml-auto px-3 py-1 rounded-full bg-charcoal text-white text-sm font-medium shadow-sm">
           {goals.length} 件
         </div>
       </div>
@@ -80,11 +80,11 @@ export default function GoalsPanel({
             type="text"
             name="title"
             placeholder="目標を追加..."
-            className="flex-1 px-4 py-3 rounded-xl border-2 border-border bg-gray-50 focus:border-mint-green focus:bg-white outline-none transition-all duration-200 placeholder:text-gray-400"
+            className="flex-1 px-4 py-3 rounded-xl border-2 border-border bg-gray-50 focus:border-charcoal focus:bg-white outline-none transition-all duration-200 placeholder:text-gray-400"
           />
           <select
             name="categoryId"
-            className="px-2 py-2 rounded border border-border bg-white"
+            className="px-2 py-2 rounded border border-border bg-white text-sm text-gray-600"
           >
             <option value="">カテゴリー</option>
             {categories.map((c) => (
@@ -95,7 +95,7 @@ export default function GoalsPanel({
           </select>
           <button
             type="submit"
-            className="px-6 py-3 rounded-xl bg-gradient-to-r from-mint-green to-mint-light text-white font-medium hover:shadow-lg hover:scale-105 transition-all duration-200"
+            className="px-6 py-3 rounded-xl bg-gradient-to-r from-ink via-charcoal to-mint-green text-white font-semibold hover:shadow-xl hover:-translate-y-0.5 transition-all duration-200"
           >
             追加
           </button>
@@ -155,7 +155,7 @@ function GoalRow({
   }, [goal]);
 
   return (
-    <div className="p-3 rounded-lg border-2 border-border bg-gray-50/50">
+    <div className="p-3 rounded-xl border-2 border-border bg-gradient-to-br from-white to-pastel-mist">
       {!editing ? (
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -165,7 +165,7 @@ function GoalRow({
                 backgroundColor: category?.color || goal.color || "#2fa38a",
               }}
             />
-            <span className="font-medium text-foreground">{goal.title}</span>
+            <span className="font-semibold text-ink">{goal.title}</span>
             {category && (
               <span className="ml-2 text-xs px-2 py-0.5 rounded bg-gray-100 border border-border text-gray-600">
                 {category.name}
@@ -175,7 +175,7 @@ function GoalRow({
           <div className="flex items-center gap-2">
             {onUpdate && (
               <button
-                className="text-sm text-foreground hover:underline"
+                className="text-sm text-ink hover:underline"
                 onClick={() => setEditing(true)}
               >
                 編集
@@ -191,14 +191,14 @@ function GoalRow({
         </div>
       ) : (
         <div className="space-y-2">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <input
-              className="px-2 py-1 border border-border rounded"
+              className="px-2 py-1 border border-border rounded text-sm text-gray-700 focus:border-charcoal"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
             />
             <select
-              className="px-2 py-1 border border-border rounded"
+              className="px-2 py-1 border border-border rounded text-sm text-gray-700 focus:border-charcoal"
               value={categoryId}
               onChange={(e) => setCategoryId(e.target.value)}
             >
@@ -210,7 +210,7 @@ function GoalRow({
               ))}
             </select>
             <select
-              className="px-2 py-1 border border-border rounded"
+              className="px-2 py-1 border border-border rounded text-sm text-gray-700 focus:border-charcoal"
               value={period}
               onChange={(e) =>
                 setPeriod(
@@ -225,26 +225,26 @@ function GoalRow({
             </select>
             <input
               type="date"
-              className="px-2 py-1 border border-border rounded"
+              className="px-2 py-1 border border-border rounded text-sm text-gray-700 focus:border-charcoal"
               value={startDate}
               onChange={(e) => setStartDate(e.target.value)}
             />
             <input
               type="date"
-              className="px-2 py-1 border border-border rounded"
+              className="px-2 py-1 border border-border rounded text-sm text-gray-700 focus:border-charcoal"
               value={endDate}
               onChange={(e) => setEndDate(e.target.value)}
             />
           </div>
           <div className="flex items-center gap-2">
             <button
-              className="px-3 py-1 rounded border border-border text-sm"
+              className="px-3 py-1 rounded border border-border text-sm text-gray-600 hover:bg-gray-50"
               onClick={() => setEditing(false)}
             >
               キャンセル
             </button>
             <button
-              className="px-3 py-1 rounded bg-mint-lighter text-mint-green hover:bg-mint-light text-sm"
+              className="px-3 py-1 rounded bg-charcoal text-white hover:bg-ink text-sm shadow-sm"
               onClick={() => {
                 const payload: {
                   title?: string;
@@ -295,21 +295,21 @@ function CategoryManager({
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="mb-2 text-sm text-mint-green hover:underline"
+        className="mb-2 text-sm text-ink hover:underline"
       >
         {open ? "カテゴリーを隠す" : "カテゴリーを管理"}
       </button>
       {open && (
-        <div className="p-3 rounded-xl border border-border bg-gray-50/60 mb-2 space-y-3">
+        <div className="p-3 rounded-xl border border-border bg-gray-50/80 mb-2 space-y-3">
           <div className="flex flex-col sm:flex-row gap-2">
             <input
-              className="px-2 py-1 border border-border rounded flex-1"
+              className="px-2 py-1 border border-border rounded flex-1 text-sm text-gray-700 focus:border-charcoal"
               placeholder="カテゴリー名"
               value={name}
               onChange={(e) => setName(e.target.value)}
             />
             <button
-              className="px-3 py-1 rounded bg-mint-lighter text-mint-green hover:bg-mint-light text-sm"
+              className="px-3 py-1 rounded bg-charcoal text-white hover:bg-ink text-sm shadow-sm"
               onClick={() => {
                 if (!name.trim()) return;
                 onAdd?.(name.trim(), color);
@@ -336,7 +336,7 @@ function CategoryManager({
                     style={{ backgroundColor: c.color }}
                   />
                   <input
-                    className="px-2 py-1 border border-border rounded flex-1"
+                    className="px-2 py-1 border border-border rounded flex-1 text-sm text-gray-700 focus:border-charcoal"
                     defaultValue={c.name}
                     onBlur={(e) => onUpdate?.(c.id, { name: e.target.value })}
                   />
@@ -388,8 +388,8 @@ function ColorSwatchPicker({
             onClick={() => onChange(preset.value)}
             className={`flex items-center gap-2 px-2 py-1 rounded-full border text-xs transition-all duration-200 ${
               active
-                ? "border-mint-green bg-mint-lighter text-foreground shadow-sm"
-                : "border-border text-gray-500 hover:border-mint-green"
+                ? "border-charcoal bg-charcoal text-white shadow-sm"
+                : "border-border text-gray-600 hover:border-charcoal"
             }`}
             aria-pressed={active}
             title={`${preset.label}（${preset.mood}）`}

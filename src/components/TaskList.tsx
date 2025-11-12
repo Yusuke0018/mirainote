@@ -11,27 +11,6 @@ interface Task {
   order?: number;
 }
 
-const PLEDGES = [
-  {
-    id: "focus15",
-    label: "全集中15分",
-    detail: "最初の15分は神速モード",
-    prompt: "最初の15分で終わらせたいこと",
-  },
-  {
-    id: "noCarry",
-    label: "持ち越しゼロ宣言",
-    detail: "今日決めたことは今日中に片付ける",
-    prompt: "今日を終えるための最後の1歩",
-  },
-  {
-    id: "tinyWin",
-    label: "小さな勝利を積む",
-    detail: "完了で自分を褒める",
-    prompt: "すぐ勝ち取れる具体的な勝利",
-  },
-] as const;
-
 interface TaskListProps {
   tasks: Task[];
   goals?: { id: string; title: string }[];
@@ -40,6 +19,8 @@ interface TaskListProps {
   onTaskDelete: (id: string) => void;
   onTaskReorder?: (id: string, direction: "up" | "down") => void;
   onTaskReorderIndex?: (id: string, toIndex: number) => void;
+  canAddTomorrow: boolean;
+  promiseDateLabel: string;
 }
 
 export default function TaskList({
@@ -50,13 +31,12 @@ export default function TaskList({
   onTaskDelete,
   onTaskReorder,
   onTaskReorderIndex,
+  canAddTomorrow,
+  promiseDateLabel,
 }: TaskListProps) {
-  const [selectedPledge, setSelectedPledge] =
-    React.useState<(typeof PLEDGES)[number]["id"]>(PLEDGES[0].id);
-  const [pledgeLocked, setPledgeLocked] = React.useState(false);
-
   const handleAddTask = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (!canAddTomorrow) return;
     const formData = new FormData(e.currentTarget);
     const title = formData.get("title") as string;
     if (title.trim()) {
@@ -68,11 +48,11 @@ export default function TaskList({
   const getStateColor = (state: Task["state"]) => {
     switch (state) {
       case "todo":
-        return "bg-pastel-blue/20 border-pastel-blue text-pastel-blue";
+        return "bg-ink text-white border-ink";
       case "doing":
-        return "bg-pastel-yellow/20 border-pastel-yellow text-warning";
+        return "bg-pastel-yellow/70 border-pastel-yellow text-gray-900";
       case "done":
-        return "bg-mint-light/20 border-mint-green text-success";
+        return "bg-pastel-lavender/60 border-pastel-lavender text-ink";
     }
   };
 
@@ -92,78 +72,57 @@ export default function TaskList({
   const finished = tasks.filter((t) => t.state === "done").length;
   const completionRate =
     tasks.length > 0 ? Math.round((finished / tasks.length) * 100) : 0;
-  const activePledge =
-    PLEDGES.find((pledge) => pledge.id === selectedPledge) || PLEDGES[0];
 
   return (
-    <div className="bg-white rounded-2xl shadow-sm border border-border p-6">
+    <div className="bg-white/95 backdrop-blur rounded-2xl shadow-md border border-border p-6">
       <div className="flex items-center gap-3 mb-6">
-        <div className="w-1 h-8 rounded-full bg-gradient-to-b from-mint-green to-pastel-blue"></div>
-        <h2 className="text-2xl font-bold text-foreground">タスクリスト</h2>
-        <div className="ml-auto px-3 py-1 rounded-full bg-mint-lighter text-sm font-medium text-mint-green">
+        <div className="w-1 h-8 rounded-full bg-gradient-to-b from-ink via-charcoal to-pastel-lavender"></div>
+        <h2 className="text-2xl font-bold text-ink tracking-tight">タスクリスト</h2>
+        <div className="ml-auto px-3 py-1 rounded-full bg-charcoal text-white text-sm font-semibold shadow-sm">
           {tasks.filter((t) => t.state !== "done").length} 件
         </div>
       </div>
 
       {/* 約束モジュール */}
-      <div className="mb-6 rounded-2xl border border-mint-green/50 bg-gradient-to-r from-mint-lighter via-white to-pastel-blue/20 p-4 shadow-[0_10px_40px_rgba(36,180,150,0.08)]">
-        <div className="flex flex-wrap items-center gap-2 mb-3">
-          <span className="text-sm font-semibold text-mint-green">今日の自分との約束</span>
-          <span className="text-xs text-gray-500">
-            {pledgeLocked
-              ? "ロック中。宣言どおりにタスクを書き出そう。"
-              : "気分に合う宣言をタップしてロックすると集中しやすくなります。"}
-          </span>
-        </div>
-        <div className="flex flex-wrap gap-2 mb-4">
-          {PLEDGES.map((pledge) => {
-            const active = pledge.id === selectedPledge;
-            return (
-              <button
-                key={pledge.id}
-                type="button"
-                onClick={() => {
-                  setSelectedPledge(pledge.id);
-                  setPledgeLocked(false);
-                }}
-                className={`flex flex-col items-start gap-1 rounded-2xl border px-3 py-2 text-left transition-all duration-200 ${
-                  active
-                    ? "border-mint-green bg-white shadow-lg"
-                    : "border-transparent bg-white/70 hover:border-mint-green/40"
-                }`}
-              >
-                <span className="text-sm font-semibold text-foreground">
-                  {pledge.label}
-                </span>
-                <span className="text-[11px] text-gray-500">{pledge.detail}</span>
-              </button>
-            );
-          })}
-        </div>
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-          <button
-            type="button"
-            onClick={() => setPledgeLocked((prev) => !prev)}
-            className={`inline-flex items-center justify-center rounded-full border px-4 py-2 text-sm font-semibold transition-all duration-200 ${
-              pledgeLocked
-                ? "border-transparent bg-mint-green text-white shadow-lg"
-                : "border-border text-mint-green hover:border-mint-green"
-            }`}
-          >
-            {pledgeLocked ? "約束ロック解除" : "この約束をロック"}
-          </button>
-          <div className="flex-1">
-            <div className="h-2 w-full overflow-hidden rounded-full bg-gray-200">
+      <div
+        className={`mb-6 rounded-2xl border p-5 ${
+          canAddTomorrow
+            ? "border-ink/20 bg-gradient-to-r from-ink via-charcoal to-graphite text-white shadow-[0_12px_45px_rgba(15,23,42,0.25)]"
+            : "border-dashed border-gray-400 bg-gray-50 text-gray-600"
+        }`}
+      >
+        {canAddTomorrow ? (
+          <div className="space-y-2">
+            <p className="text-xs font-semibold tracking-wide uppercase text-pastel-blue">
+              明日の自分との約束
+            </p>
+            <h3 className="text-xl font-bold text-white">{promiseDateLabel}</h3>
+            <p className="text-sm text-gray-200">
+              今日のうちに「明朝すぐ着手したいこと」を書き出しておきましょう。
+            </p>
+            <div className="h-2 w-full overflow-hidden rounded-full bg-white/20">
               <div
-                className="h-full rounded-full bg-gradient-to-r from-mint-green to-mint-light transition-all duration-300"
+                className="h-full rounded-full bg-gradient-to-r from-pastel-pink via-pastel-lavender to-pastel-blue transition-all duration-300"
                 style={{ width: `${completionRate}%` }}
               />
             </div>
-            <p className="mt-1 text-[11px] text-gray-500">
-              約束達成率 {completionRate}%（残り {unfinished} 件 / 完了 {finished} 件）
+            <p className="text-[11px] text-gray-200">
+              残り {unfinished} 件 / 完了 {finished} 件
             </p>
           </div>
-        </div>
+        ) : (
+          <div className="space-y-2">
+            <p className="text-xs font-semibold tracking-wide uppercase">
+              明日の約束のみ
+            </p>
+            <p className="text-base font-medium">
+              約束は {promiseDateLabel} 分だけ登録できます。
+            </p>
+            <p className="text-sm text-gray-500">
+              日付を明日に切り替えるとタスクを追加できます。
+            </p>
+          </div>
+        )}
       </div>
 
       {/* タスク追加フォーム */}
@@ -173,26 +132,28 @@ export default function TaskList({
             type="text"
             name="title"
             placeholder={
-              pledgeLocked
-                ? `宣言: ${activePledge.prompt}`
-                : "新しいタスクを追加..."
+              canAddTomorrow
+                ? "明日の自分との約束を追加..."
+                : "明日の分だけ追加できます"
             }
-            className="flex-1 px-4 py-3 rounded-xl border-2 border-border bg-gray-50 focus:border-mint-green focus:bg-white outline-none transition-all duration-200 placeholder:text-gray-400"
+            className="flex-1 px-4 py-3 rounded-xl border-2 border-border bg-gray-50 focus:border-charcoal focus:bg-white outline-none transition-all duration-200 placeholder:text-gray-500 text-gray-800 disabled:opacity-60 disabled:cursor-not-allowed"
+            disabled={!canAddTomorrow}
           />
           <button
             type="submit"
             className={`px-6 py-3 rounded-xl font-medium hover:shadow-lg hover:scale-105 transition-all duration-200 ${
-              pledgeLocked
-                ? "bg-gradient-to-r from-mint-green to-mint-light text-white"
-                : "bg-white text-mint-green border-2 border-mint-green"
+              canAddTomorrow
+                ? "bg-gradient-to-r from-ink via-charcoal to-pastel-lavender text-white"
+                : "bg-white text-ink border-2 border-charcoal opacity-50 cursor-not-allowed"
             }`}
+            disabled={!canAddTomorrow}
           >
-            {pledgeLocked ? "約束に追加" : "追加"}
+            {canAddTomorrow ? "約束に追加" : "明日だけ追加可"}
           </button>
         </div>
-        {!pledgeLocked && (
+        {!canAddTomorrow && (
           <p className="mt-2 text-xs text-gray-500">
-            宣言をロックするとプレッシャーとワクワクを少しだけプラスします。
+            今日以降の約束はできません。日付を明日に変更してください。
           </p>
         )}
       </form>
@@ -202,7 +163,7 @@ export default function TaskList({
         {sorted.length === 0 ? (
           <div className="text-center py-12 text-gray-400">
             <svg
-              className="w-16 h-16 mx-auto mb-4 text-mint-light"
+              className="w-16 h-16 mx-auto mb-4 text-pastel-lavender"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -223,7 +184,7 @@ export default function TaskList({
           sorted.map((task, idx) => (
             <div
               key={task.id}
-              className="group relative flex items-center gap-3 p-4 rounded-xl border-2 border-border hover:border-mint-green bg-gray-50/50 hover:bg-white transition-all duration-200"
+              className="group relative flex items-center gap-3 p-4 rounded-xl border-2 border-border hover:border-charcoal bg-gray-50/50 hover:bg-white transition-all duration-200"
               draggable
               onDragStart={(e) => {
                 e.dataTransfer.setData("text/plain", task.id);

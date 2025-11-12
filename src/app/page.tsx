@@ -87,6 +87,12 @@ export default function Home() {
   } | null>(null);
 
   const ymd = useMemo(() => currentDate.toFormat("yyyy-LL-dd"), [currentDate]);
+  const tomorrowDate = DateTime.now().startOf("day").plus({ days: 1 });
+  const tomorrowYmd = tomorrowDate.toFormat("yyyy-LL-dd");
+  const isTomorrowPlan = ymd === tomorrowYmd;
+  const promiseDateLabel = tomorrowDate.toFormat("yyyy年M月d日 (ccc)", {
+    locale: "ja",
+  });
   const stats = useMemo(() => {
     const todo = tasks.filter((t) => t.state === "todo").length;
     const doing = tasks.filter((t) => t.state === "doing").length;
@@ -172,6 +178,10 @@ export default function Home() {
   const handleDateChange = (date: DateTime) => setCurrentDate(date);
 
   const handleTaskAdd = async (title: string) => {
+    if (!isTomorrowPlan) {
+      setMessage("タスクは明日の約束としてのみ追加できます。日付を明日に変更してください。");
+      return;
+    }
     if (!planId) return;
     const tempId = `tmp-${Date.now()}`;
     const optimistic: UITask = { id: tempId, title, state: "todo" };
@@ -630,6 +640,8 @@ export default function Home() {
               onTaskAdd={handleTaskAdd}
               onTaskUpdate={handleTaskUpdate}
               onTaskDelete={handleTaskDelete}
+              canAddTomorrow={isTomorrowPlan}
+              promiseDateLabel={promiseDateLabel}
               onTaskReorderIndex={async (
                 draggedId: string,
                 toIndex: number,

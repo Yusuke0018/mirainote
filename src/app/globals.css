@@ -1,23 +1,27 @@
 @import "tailwindcss";
 
 :root {
-  /* アクセント（落ち着いたミント） */
-  --mint-green: #2fa38a; /* アクセント主色 */
-  --mint-light: #9fdccf; /* ホバー/淡色UI */
-  --mint-lighter: #f0fbf7; /* ごく淡い背景 */
+  /* メインアクセント（ミントを軽めにしつつ黒を追加） */
+  --mint-green: #2fa38a;
+  --mint-light: #9fdccf;
+  --mint-lighter: #f3fbf7;
+  --ink: #0f172a; /* 黒に近いディープネイビー */
+  --charcoal: #1c2533;
+  --graphite: #2d3748;
 
-  /* サブパレット（低彩度） */
-  --pastel-pink: #ffd8e1;
-  --pastel-blue: #b7d2db;
-  --pastel-lavender: #d9c6ff;
-  --pastel-peach: #ffe9c7;
-  --pastel-yellow: #fff0b3;
+  /* サブパレット（柔らかいパステル） */
+  --pastel-pink: #f9c5d1;
+  --pastel-blue: #cfe5ff;
+  --pastel-lavender: #e2d7ff;
+  --pastel-peach: #ffe3c4;
+  --pastel-yellow: #fef5c0;
+  --pastel-mist: #e7f4f8;
 
-  /* ベース（ややオフホワイト + 高コントラスト文字） */
-  --background: #f7f9fb; /* 画面背景 */
-  --foreground: #1f2937; /* 文字色（グレー900相当） */
+  /* ベース（黒 + グレー軸） */
+  --background: #f6f7fb;
+  --foreground: #111827;
   --card-bg: #ffffff; /* カード */
-  --border: #e5e7eb; /* ニュートラル境界線 */
+  --border: #e2e5ec;
 
   /* 状態カラー */
   --success: #7dcea0;
@@ -53,12 +57,16 @@
   --color-pastel-lavender: var(--pastel-lavender);
   --color-pastel-peach: var(--pastel-peach);
   --color-pastel-yellow: var(--pastel-yellow);
+  --color-pastel-mist: var(--pastel-mist);
   --color-card-bg: var(--card-bg);
   --color-border: var(--border);
   --color-success: var(--success);
   --color-warning: var(--warning);
   --color-error: var(--error);
   --color-info: var(--info);
+  --color-ink: var(--ink);
+  --color-charcoal: var(--charcoal);
+  --color-graphite: var(--graphite);
 }
 
 /* ダークモードは不採用（ライト固定） */
@@ -99,7 +107,7 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--mint-green);
+  background: linear-gradient(180deg, var(--graphite), var(--mint-green));
   border-radius: 4px;
 }
 
