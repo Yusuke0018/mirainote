@@ -8,7 +8,6 @@ import Timeline from "@/components/Timeline";
 import {
   initAuthListener,
   signInWithGoogle,
-  signOutUser,
   getCurrentUser,
 } from "@/lib/firebaseClient";
 import {
@@ -20,7 +19,6 @@ import {
   createBlock as apiCreateBlock,
   updateBlock as apiUpdateBlock,
   deleteBlock as apiDeleteBlock,
-  closeDay,
   listGoals,
   createGoal,
   deleteGoal,
@@ -30,7 +28,6 @@ import {
   deleteCategory as apiDeleteCategory,
 } from "@/lib/client";
 import GoalsPanel from "@/components/GoalsPanel";
-import Modal from "@/components/Modal";
 
 export default function Home() {
   type UITask = {
@@ -73,10 +70,6 @@ export default function Home() {
     { id: string; name: string; color: string }[]
   >([]);
   const [userEmail, setUserEmail] = useState<string | null>(null);
-  const [checkinModal, setCheckinModal] = useState<{
-    adherenceRate: number;
-    carryOverCount: number;
-  } | null>(null);
   const showTimeline = false;
 
   const ymd = useMemo(() => currentDate.toFormat("yyyy-LL-dd"), [currentDate]);
@@ -507,28 +500,11 @@ export default function Home() {
     }
   };
 
-  const handleCloseDay = async () => {
-    setLoading(true);
-    setMessage(null);
-    try {
-      const res = await closeDay({ date: ymd });
-      setCheckinModal({
-        adherenceRate: res.checkin.adherenceRate,
-        carryOverCount: res.checkin.carryOverCount,
-      });
-    } catch (err: unknown) {
-      const e = err as { message?: string };
-      setMessage(e?.message || "クローズ処理に失敗しました");
-    } finally {
-      setLoading(false);
-    }
-  };
-
   return (
     <div className="min-h-screen bg-background">
       {/* ヘッダー */}
       <header className="sticky top-0 z-50 backdrop-blur-lg bg-white/90 border-b border-border shadow-sm">
-        <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-3 sm:py-4">
+        <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-2 sm:py-3">
           <div className="flex items-center gap-2 sm:gap-4">
             <div className="flex items-center gap-2 sm:gap-3">
               <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-br from-mint-green to-pastel-blue flex items-center justify-center shadow-lg">
@@ -557,17 +533,9 @@ export default function Home() {
             </div>
             <div className="ml-auto flex items-center gap-2 sm:gap-3">
               {userEmail ? (
-                <>
-                  <span className="text-xs sm:text-sm text-gray-600">
-                    {userEmail}
-                  </span>
-                  <button
-                    onClick={() => signOutUser()}
-                    className="px-3 py-1.5 rounded-lg border border-border text-xs sm:text-sm hover:bg-gray-50 font-medium transition-all duration-200"
-                  >
-                    ログアウト
-                  </button>
-                </>
+                <span className="px-3 py-1 rounded-full bg-mint-lighter text-mint-green text-xs sm:text-sm font-semibold">
+                  ログイン中
+                </span>
               ) : (
                 <button
                   onClick={() => signInWithGoogle()}
@@ -576,12 +544,6 @@ export default function Home() {
                   Googleでログイン
                 </button>
               )}
-              <button
-                onClick={handleCloseDay}
-                className="px-3 py-1.5 rounded-lg border border-border text-xs sm:text-sm hover:bg-gray-50 font-medium transition-all duration-200"
-              >
-                今日をクローズ
-              </button>
             </div>
           </div>
         </div>
@@ -824,20 +786,6 @@ export default function Home() {
         </div>
 
         {/* 目標はトップへ移設 */}
-
-        {/* 夕方クローズ結果モーダル */}
-        <Modal
-          open={!!checkinModal}
-          title="本日のサマリ"
-          onClose={() => setCheckinModal(null)}
-        >
-          {checkinModal && (
-            <div className="space-y-2 text-sm">
-              <p>遵守率: {(checkinModal.adherenceRate * 100).toFixed(0)}%</p>
-              <p>持越し: {checkinModal.carryOverCount} 件</p>
-            </div>
-          )}
-        </Modal>
 
         {/* フッター */}
         <footer className="mt-12 text-center text-sm text-gray-500">
