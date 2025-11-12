@@ -66,7 +66,7 @@ export default function GoalsPanel({
   };
 
   return (
-    <div className="bg-white/95 backdrop-blur rounded-2xl shadow-md border border-border p-6">
+    <div className="bg-white/95 backdrop-blur rounded-2xl shadow-md border border-border p-4 sm:p-6 mobile-card">
       <div className="flex items-center gap-3 mb-6">
         <div className="w-1 h-8 rounded-full bg-gradient-to-b from-ink via-charcoal to-graphite"></div>
         <h2 className="text-2xl font-bold text-ink tracking-tight">目標</h2>

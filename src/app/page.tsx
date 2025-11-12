@@ -797,9 +797,25 @@ export default function Home() {
         )}
 
         {/* グリッドレイアウト */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
+          {/* タイムライン（モバイル先頭） */}
+          <div className="order-1 lg:order-2">
+            <Timeline
+              tasks={tasks}
+              planDate={ymd}
+              blocks={blocks}
+              intermissions={intermissions}
+              onBlockShift={handleBlockShift}
+              onBlockDelete={handleBlockDelete}
+              onBlockMoveTo={handleBlockMoveTo}
+              onBlockAdd={(start, end, title) =>
+                handleBlockAdd(start, end, title)
+              }
+            />
+          </div>
+
           {/* タスクリスト */}
-          <div className="lg:col-span-1">
+          <div className="order-2 lg:order-1">
             <TaskList
               tasks={tasks}
               goals={goals}
@@ -869,22 +885,6 @@ export default function Home() {
                   await fetchPlan(ymd);
                 }
               }}
-            />
-          </div>
-
-          {/* タイムライン */}
-          <div className="lg:col-span-1">
-            <Timeline
-              tasks={tasks}
-              planDate={ymd}
-              blocks={blocks}
-              intermissions={intermissions}
-              onBlockShift={handleBlockShift}
-              onBlockDelete={handleBlockDelete}
-              onBlockMoveTo={handleBlockMoveTo}
-              onBlockAdd={(start, end, title) =>
-                handleBlockAdd(start, end, title)
-              }
             />
           </div>
         </div>

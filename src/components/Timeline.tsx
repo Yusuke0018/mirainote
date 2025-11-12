@@ -53,7 +53,8 @@ export default function Timeline({
 
   // 0:00〜24:00 まで 24 本のグリッドを表示
   const hours = Array.from({ length: 24 }, (_, i) => i);
-  const ROW_PX = 48; // h-12 ≒ 48px
+  const ROW_PX = 48; // 1時間あたりの高さ
+  const PX_PER_MIN = ROW_PX / 60;
   const totalMinutes = hours.length * 60;
   const parsedPlanDate = DateTime.fromISO(planDate);
   const dayStart = parsedPlanDate.isValid
@@ -65,12 +66,14 @@ export default function Timeline({
     tasks.forEach((task) => map.set(task.id, task.title));
     return map;
   }, [tasks]);
+  const trackRef = React.useRef<HTMLDivElement | null>(null);
+  const scrollRef = React.useRef<HTMLDivElement | null>(null);
 
   return (
-    <div className="bg-white/95 backdrop-blur rounded-2xl shadow-md border border-border p-6">
+    <div className="bg-white/95 backdrop-blur rounded-2xl shadow-md border border-border p-4 sm:p-6 mobile-card">
       <div className="flex items-center gap-3 mb-6">
         <div className="w-1 h-8 rounded-full bg-gradient-to-b from-ink via-charcoal to-pastel-blue"></div>
-        <h2 className="text-2xl font-bold text-ink tracking-tight">タイムライン</h2>
+        <h2 className="text-xl sm:text-2xl font-bold text-ink tracking-tight">タイムライン</h2>
         <div className="ml-auto px-3 py-1 rounded-full bg-charcoal text-white text-sm font-semibold shadow-sm">
           {blocks.length} ブロック
         </div>
@@ -78,7 +81,8 @@ export default function Timeline({
 
       {/* タイムライン表示 */}
       <div
-        className="relative max-h-[1152px] overflow-y-auto touch-pan-y"
+        ref={scrollRef}
+        className="relative max-h-[70vh] overflow-y-auto touch-pan-y"
         onDragOver={(e) => {
           if (!onBlockMoveTo) return;
           e.preventDefault();
@@ -92,9 +96,11 @@ export default function Timeline({
               id: string;
               duration: number;
             };
-            const timeline = e.currentTarget as HTMLDivElement;
-            const rect = timeline.getBoundingClientRect();
-            const y = e.clientY - rect.top + timeline.scrollTop;
+            const track = trackRef.current;
+            const scroller = scrollRef.current;
+            if (!track || !scroller) return;
+            const rect = track.getBoundingClientRect();
+            const y = e.clientY - rect.top + scroller.scrollTop;
             const minutesFromStart = Math.max(
               0,
               Math.min(Math.round((y / ROW_PX) * 60), totalMinutes - 1),
@@ -104,20 +110,104 @@ export default function Timeline({
           } catch {}
         }}
       >
-        {/* 時刻軸 */}
-        <div className="flex flex-col gap-2 mb-4">
-          {hours.map((hour) => (
-            <div key={hour} className="flex items-center gap-3 h-12">
-              <div className="w-12 text-sm font-medium text-gray-500 text-right">
-                {hour.toString().padStart(2, "0")}:00
+        <div className="relative ml-14" style={{ height: ROW_PX * 24 }}>
+          <div
+            ref={trackRef}
+            className="absolute inset-0 border-l border-gray-200"
+          >
+            {hours.map((hour) => (
+              <div
+                key={hour}
+                className="absolute left-0 right-0"
+                style={{ top: hour * ROW_PX }}
+              >
+                <div className="absolute -left-14 w-12 text-sm font-medium text-gray-500 text-right pr-2">
+                  {hour.toString().padStart(2, "0")}:00
+                </div>
+                <div className="border-t border-dashed border-gray-200"></div>
               </div>
-              <div className="flex-1 border-t border-dashed border-gray-200"></div>
-            </div>
-          ))}
+            ))}
+            {blocks.map((block, index) => {
+              const colorClasses = [
+                "bg-ink/10 border-ink",
+                "bg-charcoal/10 border-charcoal",
+                "bg-pastel-blue/40 border-pastel-blue",
+                "bg-pastel-pink/40 border-pastel-pink",
+                "bg-pastel-lavender/40 border-pastel-lavender",
+                "bg-pastel-peach/40 border-pastel-peach",
+              ];
+              const colorClass = colorClasses[index % colorClasses.length];
+              const top =
+                ((block.start - dayStart.toMillis()) / 60000) * PX_PER_MIN;
+              const height = Math.max(
+                24,
+                ((block.end - block.start) / 60000) * PX_PER_MIN,
+              );
+              const linkedTitle =
+                (block.taskId && taskMap.get(block.taskId)) || block.title;
+              return (
+                <div
+                  key={block.id}
+                  className={`absolute left-3 right-3 rounded-xl border-2 p-3 shadow-sm cursor-move ${colorClass}`}
+                  style={{ top, height }}
+                  draggable
+                  onDragStart={(e) => {
+                    e.dataTransfer.setData(
+                      "text/plain",
+                      JSON.stringify({
+                        id: block.id,
+                        duration: block.end - block.start,
+                      }),
+                    );
+                    e.dataTransfer.effectAllowed = "move";
+                  }}
+                >
+                  <div className="flex justify-between items-center gap-2">
+                    <p className="font-semibold text-ink text-sm line-clamp-2">
+                      {linkedTitle || "無題のブロック"}
+                    </p>
+                    {onBlockDelete && (
+                      <button
+                        title="削除"
+                        onClick={() => onBlockDelete(block.id)}
+                        className="px-2 py-1 rounded bg-error/10 hover:bg-error/20 text-error text-xs"
+                      >
+                        削除
+                      </button>
+                    )}
+                  </div>
+                  <p className="text-[11px] text-gray-500 mt-1">
+                    {formatTime(block.start)} - {formatTime(block.end)} (
+                    {getDuration(block.start, block.end)})
+                  </p>
+                  <div className="mt-2 flex gap-2">
+                    {onBlockShift && (
+                      <>
+                        <button
+                          title="-1分"
+                          onClick={() => onBlockShift(block.id, -60 * 1000)}
+                          className="px-2 py-1 rounded border border-border text-xs hover:bg-white"
+                        >
+                          -1m
+                        </button>
+                        <button
+                          title="+1分"
+                          onClick={() => onBlockShift(block.id, 60 * 1000)}
+                          className="px-2 py-1 rounded border border-border text-xs hover:bg-white"
+                        >
+                          +1m
+                        </button>
+                      </>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
 
-        {/* ブロック表示エリア */}
-        <div className="space-y-3 pb-4">
+        {/* ブロック以外（休憩等） */}
+        <div className="mt-6 space-y-3">
           {blocks.length === 0 && intermissions.length === 0 ? (
             <div className="text-center py-12 text-gray-400">
               <svg
@@ -140,7 +230,6 @@ export default function Timeline({
             </div>
           ) : (
             <>
-              {/* Intermissions */}
               {intermissions.map((intermission) => (
                 <div
                   key={intermission.id}
@@ -159,81 +248,6 @@ export default function Timeline({
                   </div>
                 </div>
               ))}
-
-              {/* Blocks */}
-              {blocks.map((block, index) => {
-                const colors = [
-                  "bg-ink/10 border-ink",
-                  "bg-charcoal/10 border-charcoal",
-                  "bg-pastel-blue/30 border-pastel-blue",
-                  "bg-pastel-pink/30 border-pastel-pink",
-                  "bg-pastel-lavender/30 border-pastel-lavender",
-                  "bg-pastel-peach/30 border-pastel-peach",
-                ];
-                const colorClass = colors[index % colors.length];
-                const duration = block.end - block.start;
-                const linkedTitle =
-                  (block.taskId && taskMap.get(block.taskId)) || block.title;
-
-                return (
-                  <div
-                    key={block.id}
-                    className={`flex items-center gap-3 p-4 rounded-xl border-2 ${colorClass} hover:scale-[1.02] transition-all duration-200 cursor-move`}
-                    draggable
-                    onDragStart={(e) => {
-                      e.dataTransfer.setData(
-                        "text/plain",
-                        JSON.stringify({ id: block.id, duration }),
-                      );
-                      e.dataTransfer.effectAllowed = "move";
-                    }}
-                  >
-                    <div
-                      className={`flex-shrink-0 w-2 h-12 rounded-full ${colorClass
-                        .split(" ")[1]
-                        .replace("border-", "bg-")}`}
-                    ></div>
-                    <div className="flex-1">
-                      <p className="font-medium text-foreground">
-                        {linkedTitle || "無題のブロック"}
-                      </p>
-                      <p className="text-xs text-gray-500 mt-1">
-                        {formatTime(block.start)} - {formatTime(block.end)} (
-                        {getDuration(block.start, block.end)})
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      {onBlockShift && (
-                        <>
-                          <button
-                            title="-1分"
-                            onClick={() => onBlockShift(block.id, -60 * 1000)}
-                            className="px-2 py-1 rounded border border-border text-sm hover:bg-white"
-                          >
-                            -1m
-                          </button>
-                          <button
-                            title="+1分"
-                            onClick={() => onBlockShift(block.id, 60 * 1000)}
-                            className="px-2 py-1 rounded border border-border text-sm hover:bg-white"
-                          >
-                            +1m
-                          </button>
-                        </>
-                      )}
-                      {onBlockDelete && (
-                        <button
-                          title="削除"
-                          onClick={() => onBlockDelete(block.id)}
-                          className="px-2 py-1 rounded bg-error/10 hover:bg-error/20 text-error text-sm"
-                        >
-                          削除
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
             </>
           )}
         </div>

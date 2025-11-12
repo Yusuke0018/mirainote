@@ -31,11 +31,11 @@ export default function DateNavigation({
   const isToday = currentDate.hasSame(DateTime.now(), "day");
 
   return (
-    <div className="bg-gradient-to-b from-white to-pastel-mist rounded-2xl shadow-sm border border-border p-6 mb-6">
-      <div className="flex items-center justify-between">
+    <div className="bg-gradient-to-b from-white to-pastel-mist rounded-2xl shadow-sm border border-border p-4 sm:p-6 mb-6 mobile-card">
+      <div className="flex items-center justify-between gap-2">
         <button
           onClick={handlePrevDay}
-          className="flex items-center justify-center w-11 h-11 rounded-xl bg-ink text-white hover:bg-charcoal transition-all duration-200 shadow-sm"
+          className="flex items-center justify-center w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-ink text-white hover:bg-charcoal transition-all duration-200 shadow-sm"
           aria-label="前の日"
         >
           <svg
@@ -53,17 +53,17 @@ export default function DateNavigation({
           </svg>
         </button>
 
-        <div className="flex flex-col items-center gap-2 text-center">
-          <div className="text-3xl font-bold bg-gradient-to-r from-ink via-charcoal to-mint-green bg-clip-text text-transparent">
+        <div className="flex flex-col items-center gap-2 text-center flex-1">
+          <div className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-ink via-charcoal to-mint-green bg-clip-text text-transparent">
             {currentDate.toFormat("yyyy年M月d日")}
           </div>
-          <div className="text-sm text-gray-600 font-medium tracking-wide uppercase">
+          <div className="text-xs sm:text-sm text-gray-600 font-medium tracking-wide uppercase">
             {currentDate.toFormat("cccc", { locale: "ja" })}
           </div>
           {!isToday && (
             <button
               onClick={handleToday}
-              className="mt-1 px-5 py-1.5 rounded-full bg-charcoal text-white text-sm font-semibold tracking-wide hover:bg-ink transition-all duration-200"
+              className="mt-1 px-4 sm:px-5 py-1.5 rounded-full bg-charcoal text-white text-xs sm:text-sm font-semibold tracking-wide hover:bg-ink transition-all duration-200"
             >
               今日に戻る
             </button>
@@ -72,7 +72,7 @@ export default function DateNavigation({
 
         <button
           onClick={handleNextDay}
-          className={`flex items-center justify-center w-11 h-11 rounded-xl transition-all duration-200 shadow-sm ${
+          className={`flex items-center justify-center w-10 h-10 sm:w-11 sm:h-11 rounded-xl transition-all duration-200 shadow-sm ${
             disableNext
               ? "bg-gray-200 text-gray-400 cursor-not-allowed"
               : "bg-ink text-white hover:bg-charcoal"
