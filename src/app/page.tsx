@@ -524,7 +524,7 @@ export default function Home() {
               </div>
               <div className="flex flex-col">
                 <h1 className="text-lg sm:text-2xl font-bold bg-gradient-to-r from-mint-green to-mint-light bg-clip-text text-transparent">
-                  みらいノート
+                  ミライノート
                 </h1>
                 <span className="text-[10px] sm:text-xs text-gray-500">
                   計画と実行を、やさしく整える

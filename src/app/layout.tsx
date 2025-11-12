@@ -13,9 +13,14 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "みらいノート - あなたの未来を計画する",
+  title: "ミライノート - あなたの未来を計画する",
   description:
     "タスク管理とスケジュール管理を一つにまとめた、スタイリッシュで使いやすいアプリケーション",
+  icons: {
+    icon: "/mirainote-icon.svg",
+    apple: "/mirainote-icon.svg",
+  },
+  manifest: "/manifest.webmanifest",
 };
 
 export const viewport: Viewport = {
