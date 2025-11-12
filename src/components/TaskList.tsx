@@ -35,6 +35,13 @@ export default function TaskList({
   canAddTomorrow,
   promiseDateLabel,
 }: TaskListProps) {
+  const [editingTitleId, setEditingTitleId] = React.useState<string | null>(
+    null,
+  );
+  const [titleDraft, setTitleDraft] = React.useState("");
+  const [editingNoteId, setEditingNoteId] = React.useState<string | null>(null);
+  const [noteDraft, setNoteDraft] = React.useState("");
+
   const handleAddTask = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!canAddTomorrow) return;
@@ -228,11 +235,49 @@ export default function TaskList({
                   {getStateLabel(task.state)}
                 </button>
                 <div className="flex-1 space-y-2">
-                  <p
-                    className={`font-medium ${task.state === "done" ? "line-through text-gray-400" : "text-foreground"}`}
-                  >
-                    {task.title}
-                  </p>
+                  {editingTitleId === task.id ? (
+                    <div className="flex items-center gap-2">
+                      <input
+                        value={titleDraft}
+                        onChange={(e) => setTitleDraft(e.target.value)}
+                        className="flex-1 px-3 py-2 rounded-lg border border-charcoal text-base"
+                        autoFocus
+                      />
+                      <button
+                        className="px-3 py-1 text-xs rounded-lg bg-charcoal text-white"
+                        onClick={() => {
+                          if (!titleDraft.trim()) return;
+                          onTaskUpdate(task.id, { title: titleDraft.trim() });
+                          setEditingTitleId(null);
+                        }}
+                      >
+                        保存
+                      </button>
+                      <button
+                        className="px-3 py-1 text-xs rounded-lg border border-border"
+                        onClick={() => setEditingTitleId(null)}
+                      >
+                        キャンセル
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <p
+                        className={`flex-1 text-base sm:text-lg font-semibold tracking-tight ${task.state === "done" ? "line-through text-gray-400" : "text-foreground"}`}
+                      >
+                        {task.title}
+                      </p>
+                      <button
+                        className="opacity-0 group-hover:opacity-100 transition-opacity text-xs text-gray-400 hover:text-charcoal"
+                        onClick={() => {
+                          setEditingTitleId(task.id);
+                          setTitleDraft(task.title);
+                        }}
+                      >
+                        編集
+                      </button>
+                    </div>
+                  )}
                   <div className="flex items-center gap-4 text-xs text-gray-500 flex-wrap">
                     <label className="flex items-center gap-2">
                       <span>見積(分):</span>
@@ -273,17 +318,51 @@ export default function TaskList({
                 </div>
               </div>
 
-              <textarea
-                defaultValue={task.timingNote || ""}
-                placeholder="いつ頃やる？（例: 朝イチ / 21時頃 / 打合せ後すぐ など）"
-                onBlur={(e) =>
-                  onTaskUpdate(task.id, {
-                    timingNote: e.currentTarget.value.trim() || undefined,
-                  })
-                }
-                className="w-full text-sm text-gray-700 border border-border rounded-lg bg-white/80 px-3 py-2 resize-none focus:border-charcoal focus:bg-white"
-                rows={2}
-              />
+              {editingNoteId === task.id ? (
+                <div className="space-y-2">
+                  <textarea
+                    value={noteDraft}
+                    onChange={(e) => setNoteDraft(e.target.value)}
+                    className="w-full text-sm text-gray-700 border border-border rounded-lg bg-white px-3 py-2 resize-none focus:border-charcoal focus:bg-white"
+                    rows={2}
+                    autoFocus
+                  />
+                  <div className="flex gap-2 justify-end">
+                    <button
+                      className="px-3 py-1 text-xs rounded-lg border border-border"
+                      onClick={() => setEditingNoteId(null)}
+                    >
+                      キャンセル
+                    </button>
+                    <button
+                      className="px-3 py-1 text-xs rounded-lg bg-charcoal text-white"
+                      onClick={() => {
+                        onTaskUpdate(task.id, {
+                          timingNote: noteDraft.trim() || undefined,
+                        });
+                        setEditingNoteId(null);
+                      }}
+                    >
+                      保存
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex items-start justify-between rounded-lg border border-border bg-white/70 px-3 py-2 text-sm text-gray-700">
+                  <span>
+                    {task.timingNote || "いつやる？（未設定）"}
+                  </span>
+                  <button
+                    className="ml-3 text-xs text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity"
+                    onClick={() => {
+                      setEditingNoteId(task.id);
+                      setNoteDraft(task.timingNote || "");
+                    }}
+                  >
+                    編集
+                  </button>
+                </div>
+              )}
 
               <div className="flex items-center justify-between">
                 <button
