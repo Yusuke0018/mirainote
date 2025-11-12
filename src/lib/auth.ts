@@ -19,10 +19,15 @@ export async function requireAuth(req: NextRequest): Promise<AuthContext> {
 
   const authz =
     req.headers.get("authorization") || req.headers.get("Authorization");
-  if (!authz || !authz.startsWith("Bearer ")) {
+  if (!authz) {
     throw new UnauthorizedError("Missing Bearer token");
   }
-  const token = authz.slice("Bearer ".length);
+  // Authorization scheme is case-insensitive per RFC 7235
+  const m = authz.match(/^Bearer\s+(.+)$/i);
+  if (!m) {
+    throw new UnauthorizedError("Missing Bearer token");
+  }
+  const token = m[1].trim();
   const decoded = await getAdminAuth().verifyIdToken(token);
   return { uid: decoded.uid };
 }
