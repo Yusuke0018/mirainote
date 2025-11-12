@@ -27,6 +27,8 @@ npm run dev
 - `PATCH/DELETE /api/tasks/:id` → 更新/削除。
 - `POST /api/blocks` { planId, start, end, lockedLength?, movable?, taskId?, title? } → 重なり検査ありで作成。
 - `PATCH/DELETE /api/blocks/:id` → 重なり検査ありで移動/削除。
+- `POST /api/scheduler/interrupt` { planId, start, duration? | end? } → 割り込み以降のブロックを長さ維持で後方スライド。候補も返却。
+- `POST /api/review/close-day` { date? } → 遵守率(簡易: done/total)とCarry-overを作成、翌日Planの下書き生成。
 
 Curl例（デバッグ認証）
 

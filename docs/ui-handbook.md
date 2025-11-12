@@ -39,10 +39,15 @@
 - DELETE `/api/blocks/:id`
   - 200: `{ ok: true }`
 
-今後追加予定:
+追加API（実装済み）:
 
 - POST `/api/scheduler/interrupt`（割り込み時の後方スライド＋候補提示）
+  - body: `{ planId, start, duration? | end? }`
+  - 200: `{ ok, moved:[{id,from:{start,end},to:{start,end}}], unplaced:[{id,duration}], candidates:[{label,start,end}] }`
+  - 候補: `today_end / tomorrow_morning / tomorrow_evening`
 - POST `/api/review/close-day`（遵守率計算・持ち越し生成）
+  - body: `{ date?: 'YYYY-MM-DD' }`
+  - 200: `{ ok, checkin, nextPlanId }`
 
 ## 4. UI画面・イベント設計（MVP）
 
