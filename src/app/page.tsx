@@ -73,10 +73,12 @@ export default function Home() {
   const showTimeline = false;
 
   const ymd = useMemo(() => currentDate.toFormat("yyyy-LL-dd"), [currentDate]);
-  const tomorrowDate = DateTime.now().startOf("day").plus({ days: 1 });
-  const tomorrowYmd = tomorrowDate.toFormat("yyyy-LL-dd");
-  const isTomorrowPlan = ymd === tomorrowYmd;
-  const promiseDateLabel = tomorrowDate.toFormat("yyyy年M月d日 (ccc)", {
+  const todayDate = DateTime.now().startOf("day");
+  const tomorrowDate = todayDate.plus({ days: 1 });
+  const isTodayPlan = ymd === todayDate.toFormat("yyyy-LL-dd");
+  const isTomorrowPlan = ymd === tomorrowDate.toFormat("yyyy-LL-dd");
+  const canAddTaskForPlan = isTodayPlan || isTomorrowPlan;
+  const planDateLabel = currentDate.toFormat("yyyy年M月d日 (ccc)", {
     locale: "ja",
   });
   const stats = useMemo(() => {
@@ -252,8 +254,8 @@ export default function Home() {
   const handleDateChange = (date: DateTime) => setCurrentDate(date);
 
   const handleTaskAdd = async (title: string, timingNote?: string) => {
-    if (!isTomorrowPlan) {
-      setMessage("タスクは明日の約束としてのみ追加できます。日付を明日に変更してください。");
+    if (!canAddTaskForPlan) {
+      setMessage("タスクは今日と明日のみ追加できます。");
       return;
     }
     if (!planId) return;
@@ -700,8 +702,9 @@ export default function Home() {
               onTaskAdd={handleTaskAdd}
               onTaskUpdate={handleTaskUpdate}
               onTaskDelete={handleTaskDelete}
-              canAddTomorrow={isTomorrowPlan}
-              promiseDateLabel={promiseDateLabel}
+              canAddTomorrow={canAddTaskForPlan}
+              promiseDateLabel={planDateLabel}
+              planScopeLabel={isTomorrowPlan ? "明日の" : isTodayPlan ? "今日の" : ""}
               onTaskReorderIndex={async (
                 draggedId: string,
                 toIndex: number,

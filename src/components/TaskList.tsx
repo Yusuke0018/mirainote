@@ -22,6 +22,7 @@ interface TaskListProps {
   onTaskReorderIndex?: (id: string, toIndex: number) => void;
   canAddTomorrow: boolean;
   promiseDateLabel: string;
+  planScopeLabel?: string;
 }
 
 export default function TaskList({
@@ -34,6 +35,7 @@ export default function TaskList({
   onTaskReorderIndex,
   canAddTomorrow,
   promiseDateLabel,
+  planScopeLabel,
 }: TaskListProps) {
   const [editingTitleId, setEditingTitleId] = React.useState<string | null>(
     null,
@@ -77,6 +79,7 @@ export default function TaskList({
   };
 
   const sorted = tasks.slice().sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+  const scopeLabel = planScopeLabel ?? "この日の";
   const unfinished = tasks.filter((t) => t.state !== "done").length;
   const finished = tasks.filter((t) => t.state === "done").length;
   const completionRate =
@@ -103,7 +106,7 @@ export default function TaskList({
         {canAddTomorrow ? (
           <div className="space-y-2">
             <p className="text-xs font-semibold tracking-wide uppercase text-pastel-blue">
-              明日の自分との約束
+              {scopeLabel}自分との約束
             </p>
             <h3 className="text-xl font-bold text-white">{promiseDateLabel}</h3>
             <p className="text-sm text-gray-200">
@@ -122,13 +125,13 @@ export default function TaskList({
         ) : (
           <div className="space-y-2">
             <p className="text-xs font-semibold tracking-wide uppercase">
-              明日の約束のみ
+              今日と明日だけ
             </p>
             <p className="text-base font-medium">
-              約束は {promiseDateLabel} 分だけ登録できます。
+              約束は今日と明日の予定にだけ登録できます。
             </p>
             <p className="text-sm text-gray-500">
-              日付を明日に切り替えるとタスクを追加できます。
+              日付を今日または明日に切り替えるとタスクを追加できます。
             </p>
           </div>
         )}
@@ -142,8 +145,8 @@ export default function TaskList({
             name="title"
             placeholder={
               canAddTomorrow
-                ? "明日の自分との約束を追加..."
-                : "明日の分だけ追加できます"
+                ? `${scopeLabel}約束を追加...`
+                : "今日と明日だけ追加できます"
             }
             className="flex-1 px-4 py-3 rounded-xl border-2 border-border bg-gray-50 focus:border-charcoal focus:bg-white outline-none transition-all duration-200 placeholder:text-gray-500 text-gray-800 disabled:opacity-60 disabled:cursor-not-allowed"
             disabled={!canAddTomorrow}
@@ -169,7 +172,7 @@ export default function TaskList({
         />
         {!canAddTomorrow && (
           <p className="mt-2 text-xs text-gray-500">
-            今日以降の約束はできません。日付を明日に変更してください。
+            今日と明日のプランだけ登録できます。
           </p>
         )}
       </form>
