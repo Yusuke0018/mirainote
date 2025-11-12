@@ -9,7 +9,10 @@
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
     "format": "prettier --write .",
-    "test": "vitest run"
+    "test": "vitest run",
+    "docs:structure": "node scripts/gen-structure.mjs",
+    "docs:api": "node scripts/list-api.mjs",
+    "docs:gen": "npm run docs:structure && npm run docs:api"
   },
   "dependencies": {
     "firebase": "^10.12.4",
