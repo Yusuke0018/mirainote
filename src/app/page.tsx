@@ -461,7 +461,10 @@ export default function Home() {
               onTaskAdd={handleTaskAdd}
               onTaskUpdate={handleTaskUpdate}
               onTaskDelete={handleTaskDelete}
-              onTaskReorderIndex={async (draggedId: string, toIndex: number) => {
+              onTaskReorderIndex={async (
+                draggedId: string,
+                toIndex: number,
+              ) => {
                 const ordered = tasks
                   .slice()
                   .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
@@ -530,6 +533,22 @@ export default function Home() {
               onBlockAdd={handleBlockAdd}
               onBlockShift={handleBlockShift}
               onBlockDelete={handleBlockDelete}
+              onBlockMoveTo={async (id, start, end) => {
+                const b = blocks.find((x) => x.id === id);
+                if (!b) return;
+                const before = blocks;
+                setBlocks((prev) =>
+                  prev.map((x) => (x.id === id ? { ...x, start, end } : x)),
+                );
+                try {
+                  await apiUpdateBlock(id, { start, end });
+                } catch (err: unknown) {
+                  const e = err as { status?: number; message?: string };
+                  setBlocks(before);
+                  if (e?.status === 409) setMessage("既存ブロックと重なります");
+                  else setMessage(e?.message || "ブロック移動に失敗しました");
+                }
+              }}
             />
           </div>
         </div>
@@ -540,6 +559,28 @@ export default function Home() {
             goals={goals}
             onAdd={handleGoalAdd}
             onDelete={handleGoalDelete}
+            onUpdate={async (id, patch: { title?: string; period?: string; startDate?: string; endDate?: string; color?: string }) => {
+              try {
+                const { updateGoal } = await import("@/lib/client");
+                const pp = patch as { title?: string; period?: 'year'|'quarter'|'month'|'custom'; startDate?: string; endDate?: string; color?: string };
+                await updateGoal(id, pp);
+                // 極力局所更新
+                setGoals((prev) =>
+                  prev.map((g) =>
+                    g.id === id
+                      ? {
+                          ...g,
+                          title: patch.title ?? g.title,
+                          color: patch.color ?? g.color,
+                        }
+                      : g,
+                  ),
+                );
+              } catch (err: unknown) {
+                const e = err as { message?: string };
+                setMessage(e?.message || "目標の更新に失敗しました");
+              }
+            }}
           />
         </div>
 

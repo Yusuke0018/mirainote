@@ -1,0 +1,61 @@
+name: CI
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install
+        run: npm ci
+        working-directory: mirainote
+      - name: Typecheck
+        run: npm run typecheck
+        working-directory: mirainote
+      - name: Lint
+        run: npm run lint
+        working-directory: mirainote
+      - name: Unit tests
+        run: npm test
+        working-directory: mirainote
+      - name: Build
+        run: npm run build
+        working-directory: mirainote
+      - name: Generate docs (structure & API)
+        run: npm run docs:gen
+        working-directory: mirainote
+
+  e2e:
+    if: ${{ env.FIREBASE_PROJECT_ID != '' }}
+    needs: build-test
+    runs-on: ubuntu-latest
+    env:
+      AUTH_DEBUG_ENABLED: 1
+      NEXT_PUBLIC_DEBUG_UID: ci-user
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install
+        run: npm ci
+        working-directory: mirainote
+      - name: Build
+        run: npm run build
+        working-directory: mirainote
+      - name: Start
+        run: |
+          npm run start &
+          npx wait-on http://localhost:3000
+        working-directory: mirainote
+      - name: Basic check
+        run: |
+          curl -sSf http://localhost:3000 | head -n 50
+        working-directory: mirainote

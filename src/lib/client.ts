@@ -154,7 +154,16 @@ export async function createGoal(input: CreateGoalInput) {
     body: JSON.stringify(input),
   });
 }
-export async function updateGoal(id: string, patch: UpdateGoalInput) {
+export async function updateGoal(
+  id: string,
+  patch: {
+    title?: string;
+    period?: 'year' | 'quarter' | 'month' | 'custom';
+    startDate?: string;
+    endDate?: string;
+    color?: string;
+  },
+) {
   return api<{ goal: WithId<GoalT> }>(`/api/goals/${id}`, {
     method: "PATCH",
     body: JSON.stringify(patch),

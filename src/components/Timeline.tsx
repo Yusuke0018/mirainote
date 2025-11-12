@@ -22,6 +22,7 @@ interface TimelineProps {
   onBlockAdd: (start: number, end: number, title?: string) => void;
   onBlockShift?: (id: string, deltaMs: number) => void;
   onBlockDelete?: (id: string) => void;
+  onBlockMoveTo?: (id: string, start: number, end: number) => void;
 }
 
 export default function Timeline({
@@ -30,6 +31,7 @@ export default function Timeline({
   onBlockAdd,
   onBlockShift,
   onBlockDelete,
+  onBlockMoveTo,
 }: TimelineProps) {
   const formatTime = (timestamp: number) => {
     return DateTime.fromMillis(timestamp).toFormat("HH:mm");
@@ -46,6 +48,7 @@ export default function Timeline({
 
   // 時間軸の時刻ラベル（6:00〜23:00）
   const hours = Array.from({ length: 18 }, (_, i) => i + 6);
+  const ROW_PX = 48; // h-12 ≒ 48px
 
   return (
     <div className="bg-white rounded-2xl shadow-sm border border-border p-6">
@@ -58,7 +61,36 @@ export default function Timeline({
       </div>
 
       {/* タイムライン表示 */}
-      <div className="relative">
+      <div
+        className="relative"
+        onDragOver={(e) => {
+          if (!onBlockMoveTo) return;
+          e.preventDefault();
+        }}
+        onDrop={(e) => {
+          if (!onBlockMoveTo) return;
+          const data = e.dataTransfer?.getData("text/plain");
+          if (!data) return;
+          try {
+            const { id, duration } = JSON.parse(data) as {
+              id: string;
+              duration: number;
+            };
+            const timeline = e.currentTarget as HTMLDivElement;
+            const rect = timeline.getBoundingClientRect();
+            const y = e.clientY - rect.top;
+            const minutesFrom6 = Math.max(
+              0,
+              Math.min(Math.round((y / ROW_PX) * 60), 17 * 60),
+            );
+            const start = DateTime.now()
+              .startOf("day")
+              .plus({ hours: 6, minutes: minutesFrom6 })
+              .toMillis();
+            onBlockMoveTo(id, start, start + duration);
+          } catch {}
+        }}
+      >
         {/* 時刻軸 */}
         <div className="flex flex-col gap-2 mb-4">
           {hours.map((hour) => (
@@ -130,6 +162,15 @@ export default function Timeline({
                   <div
                     key={block.id}
                     className={`flex items-center gap-3 p-4 rounded-xl border-2 ${colorClass} hover:scale-[1.02] transition-all duration-200 cursor-move`}
+                    draggable
+                    onDragStart={(e) => {
+                      const duration = block.end - block.start;
+                      e.dataTransfer.setData(
+                        "text/plain",
+                        JSON.stringify({ id: block.id, duration }),
+                      );
+                      e.dataTransfer.effectAllowed = "move";
+                    }}
                   >
                     <div
                       className={`flex-shrink-0 w-2 h-12 rounded-full ${colorClass.split(" ")[1].replace("border-", "bg-")}`}
