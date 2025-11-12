@@ -474,7 +474,7 @@ export default function Home() {
               id,
               patch: {
                 title?: string;
-                period?: string;
+                period?: "year" | "quarter" | "month" | "custom";
                 startDate?: string;
                 endDate?: string;
                 color?: string;

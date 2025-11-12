@@ -51,7 +51,8 @@ export default function TaskList({
   onTaskReorder,
   onTaskReorderIndex,
 }: TaskListProps) {
-  const [selectedPledge, setSelectedPledge] = React.useState(PLEDGES[0].id);
+  const [selectedPledge, setSelectedPledge] =
+    React.useState<(typeof PLEDGES)[number]["id"]>(PLEDGES[0].id);
   const [pledgeLocked, setPledgeLocked] = React.useState(false);
 
   const handleAddTask = (e: React.FormEvent<HTMLFormElement>) => {

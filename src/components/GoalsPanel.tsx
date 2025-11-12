@@ -20,7 +20,7 @@ interface GoalsPanelProps {
     id: string,
     patch: {
       title?: string;
-      period?: string;
+      period?: "year" | "quarter" | "month" | "custom";
       startDate?: string;
       endDate?: string;
       color?: string;
@@ -288,7 +288,7 @@ function CategoryManager({
 }) {
   const [open, setOpen] = React.useState(false);
   const [name, setName] = React.useState("");
-  const [color, setColor] = React.useState(COLOR_PRESETS[0].value);
+  const [color, setColor] = React.useState<string>(COLOR_PRESETS[0].value);
 
   return (
     <div className="mb-4">
