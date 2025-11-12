@@ -3,6 +3,7 @@ import {
   getAuth,
   GoogleAuthProvider,
   signInWithPopup,
+  signInWithRedirect,
   signOut,
   onIdTokenChanged,
   type User,
@@ -46,7 +47,11 @@ export async function getIdToken(): Promise<string | null> {
 export async function signInWithGoogle() {
   const auth = getAuth(getFirebaseClientApp());
   const provider = new GoogleAuthProvider();
-  await signInWithPopup(auth, provider);
+  try {
+    await signInWithPopup(auth, provider);
+  } catch (e) {
+    await signInWithRedirect(auth, provider);
+  }
 }
 
 export async function signOutUser() {
