@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { DateTime } from "luxon";
 import DateNavigation from "@/components/DateNavigation";
 import TaskList from "@/components/TaskList";
@@ -47,10 +47,10 @@ export default function Home() {
   const [blocks, setBlocks] = useState<
     {
       id: string;
-      title?: string;
+      title: string | undefined;
       start: number;
       end: number;
-      taskId?: string;
+      taskId: string | undefined;
     }[]
   >([]);
   const [intermissions, setIntermissions] = useState<
@@ -99,38 +99,88 @@ export default function Home() {
     const done = tasks.filter((t) => t.state === "done").length;
     return { todo, doing, done, total: tasks.length };
   }, [tasks]);
+  const dayStartMs = useMemo(
+    () => DateTime.fromISO(ymd).startOf("day").toMillis(),
+    [ymd],
+  );
 
-  const findSlotForDuration = (minutes: number) => {
-    const durationMs = Math.max(1, minutes) * 60 * 1000;
-    const startOfDay = DateTime.fromISO(ymd).startOf("day").toMillis();
-    const sorted = blocks.slice().sort((a, b) => a.start - b.start);
-    let cursor = startOfDay;
-    for (const block of sorted) {
-      if (cursor + durationMs <= block.start) {
-        return { start: cursor, end: cursor + durationMs };
+  const findSlotForDuration = useCallback(
+    (minutes: number, sourceBlocks?: typeof blocks) => {
+      const durationMs = Math.max(1, minutes) * 60 * 1000;
+      const sorted = (sourceBlocks ?? blocks)
+        .slice()
+        .sort((a, b) => a.start - b.start);
+      let cursor = dayStartMs;
+      for (const block of sorted) {
+        if (cursor + durationMs <= block.start) {
+          return { start: cursor, end: cursor + durationMs };
+        }
+        cursor = Math.max(cursor, block.end);
       }
-      cursor = Math.max(cursor, block.end);
-    }
-    return { start: cursor, end: cursor + durationMs };
-  };
+      return { start: cursor, end: cursor + durationMs };
+    },
+    [blocks, dayStartMs],
+  );
 
-  const scheduleBlockForTask = async (task: {
-    id: string;
-    title: string;
-    estimateMinutes?: number;
-  }) => {
-    if (!planId) return;
-    const duration = task.estimateMinutes ?? 30;
-    const { start, end } = findSlotForDuration(duration);
-    const { block } = await apiCreateBlock({
-      planId,
-      start,
-      end,
-      title: task.title,
-      taskId: task.id,
-    });
-    setBlocks((prev) => [...prev, block]);
-  };
+  const createBlockForTask = useCallback(
+    async (
+      planIdentifier: string,
+      task: { id: string; title: string; estimateMinutes?: number },
+      snapshot?: typeof blocks,
+    ) => {
+      const base = snapshot ?? blocks;
+      const duration = task.estimateMinutes ?? 30;
+      const slot = findSlotForDuration(duration, base);
+      const { block } = await apiCreateBlock({
+        planId: planIdentifier,
+        start: slot.start,
+        end: slot.end,
+        title: task.title,
+        taskId: task.id,
+      });
+      const normalized = {
+        id: block.id,
+        title: block.title,
+        start: block.start,
+        end: block.end,
+        taskId: block.taskId,
+      };
+      if (!snapshot) {
+        setBlocks((prev) => [...prev, normalized]);
+      }
+      return normalized;
+    },
+    [blocks, findSlotForDuration],
+  );
+
+  const ensureBlocksForTasks = useCallback(
+    async (
+      planIdentifier: string,
+      taskList: {
+        id: string;
+        title: string;
+        estimateMinutes?: number | null;
+      }[],
+      initialBlocks: typeof blocks,
+    ) => {
+      const snapshot = [...initialBlocks];
+      for (const task of taskList) {
+        if (snapshot.some((b) => b.taskId === task.id)) continue;
+        const normalized = await createBlockForTask(
+          planIdentifier,
+          {
+            id: task.id,
+            title: task.title,
+            estimateMinutes: task.estimateMinutes ?? undefined,
+          },
+          snapshot,
+        );
+        if (normalized) snapshot.push(normalized);
+      }
+      return snapshot;
+    },
+    [createBlockForTask],
+  );
 
   const fetchPlan = async (dateStr: string) => {
     setLoading(true);
@@ -151,15 +201,13 @@ export default function Home() {
           order: (t as unknown as { order?: number }).order,
         })),
       );
-      setBlocks(
-        bundle.blocks.map((b) => ({
-          id: b.id,
-          title: b.title,
-          start: b.start,
-          end: b.end,
-          taskId: b.taskId,
-        })),
-      );
+      let nextBlocks = bundle.blocks.map((b) => ({
+        id: b.id,
+        title: b.title,
+        start: b.start,
+        end: b.end,
+        taskId: b.taskId,
+      }));
       setIntermissions(
         bundle.intermissions.map((i) => ({
           id: i.id,
@@ -184,6 +232,13 @@ export default function Home() {
       setCategories(
         cat.categories.map((c) => ({ id: c.id, name: c.name, color: c.color })),
       );
+      // ensure timeline blocks exist for every task
+      nextBlocks = await ensureBlocksForTasks(
+        bundle.plan.id,
+        bundle.tasks,
+        nextBlocks,
+      );
+      setBlocks(nextBlocks);
     } catch (err: unknown) {
       const e = err as { message?: string };
       setMessage(e?.message || "読み込みに失敗しました");
@@ -233,11 +288,16 @@ export default function Home() {
         ),
       );
       try {
-        await scheduleBlockForTask({
-          id: task.id,
-          title: task.title,
-          estimateMinutes: task.estimateMinutes,
-        });
+        if (planId) {
+          await createBlockForTask(
+            planId,
+            {
+              id: task.id,
+              title: task.title,
+              estimateMinutes: task.estimateMinutes,
+            },
+          );
+        }
       } catch (err: unknown) {
         const e = err as { message?: string };
         setMessage(e?.message || "タイムラインへの反映に失敗しました");
@@ -333,6 +393,42 @@ export default function Home() {
       const e = err as { message?: string };
       setBlocks(before);
       setMessage(e?.message || "ブロック削除に失敗しました");
+    }
+  };
+
+  const handleBlockAdd = async (start: number, end: number, title?: string) => {
+    if (!planId) return;
+    const tempId = `tmp-${Date.now()}`;
+    setBlocks((prev) => [
+      ...prev,
+      {
+        id: tempId,
+        title: title || "新しいブロック",
+        start,
+        end,
+        taskId: undefined,
+      },
+    ]);
+    try {
+      const { block } = await apiCreateBlock({ planId, start, end, title });
+      setBlocks((prev) =>
+        prev.map((b) =>
+          b.id === tempId
+            ? {
+                id: block.id,
+                title: block.title,
+                start: block.start,
+                end: block.end,
+                taskId: block.taskId,
+              }
+            : b,
+        ),
+      );
+    } catch (err: unknown) {
+      setBlocks((prev) => prev.filter((b) => b.id !== tempId));
+      const e = err as { status?: number; message?: string };
+      if (e?.status === 409) setMessage("既存ブロックと重なります");
+      else setMessage(e?.message || "ブロック追加に失敗しました");
     }
   };
 
@@ -786,6 +882,9 @@ export default function Home() {
               onBlockShift={handleBlockShift}
               onBlockDelete={handleBlockDelete}
               onBlockMoveTo={handleBlockMoveTo}
+              onBlockAdd={(start, end, title) =>
+                handleBlockAdd(start, end, title)
+              }
             />
           </div>
         </div>
