@@ -330,18 +330,22 @@ function CategoryManager({
                 key={c.id}
                 className="flex flex-col gap-2 p-2 rounded border border-border bg-white"
               >
-                <div className="flex items-center gap-2">
-                  <div
-                    className="w-3 h-3 rounded-full"
-                    style={{ backgroundColor: c.color }}
-                  />
-                  <input
-                    className="px-2 py-1 border border-border rounded flex-1 text-sm text-gray-700 focus:border-charcoal"
-                    defaultValue={c.name}
-                    onBlur={(e) => onUpdate?.(c.id, { name: e.target.value })}
-                  />
+                <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                  <div className="flex items-center gap-2">
+                    <div
+                      className="w-3 h-3 rounded-full"
+                      style={{ backgroundColor: c.color }}
+                    />
+                    <input
+                      className="px-2 py-1 border border-border rounded flex-1 text-sm text-gray-700 focus:border-charcoal"
+                      defaultValue={c.name}
+                      onBlur={(e) =>
+                        onUpdate?.(c.id, { name: e.target.value })
+                      }
+                    />
+                  </div>
                   <button
-                    className="px-2 py-1 rounded bg-error/10 hover:bg-error/20 text-error text-sm"
+                    className="px-2 py-1 rounded bg-error/10 hover:bg-error/20 text-error text-sm sm:self-start"
                     onClick={() => onDelete?.(c.id)}
                   >
                     削除

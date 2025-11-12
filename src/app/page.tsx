@@ -529,11 +529,11 @@ export default function Home() {
       {/* ヘッダー */}
       <header className="sticky top-0 z-50 backdrop-blur-lg bg-white/90 border-b border-border shadow-sm">
         <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-3 sm:py-4">
-          <div className="flex items-center gap-3 sm:gap-4">
+          <div className="flex items-center gap-2 sm:gap-4">
             <div className="flex items-center gap-2 sm:gap-3">
-              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-br from-mint-green to-pastel-blue flex items-center justify-center shadow-lg">
+              <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-br from-mint-green to-pastel-blue flex items-center justify-center shadow-lg">
                 <svg
-                  className="w-5 h-5 sm:w-6 sm:h-6 text-white"
+                  className="w-4 h-4 sm:w-6 sm:h-6 text-white"
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"
@@ -547,10 +547,10 @@ export default function Home() {
                 </svg>
               </div>
               <div className="flex flex-col">
-                <h1 className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-mint-green to-mint-light bg-clip-text text-transparent">
+                <h1 className="text-lg sm:text-2xl font-bold bg-gradient-to-r from-mint-green to-mint-light bg-clip-text text-transparent">
                   みらいノート
                 </h1>
-                <span className="text-[11px] sm:text-xs text-gray-500">
+                <span className="text-[10px] sm:text-xs text-gray-500">
                   計画と実行を、やさしく整える
                 </span>
               </div>
