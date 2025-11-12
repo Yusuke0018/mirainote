@@ -2,250 +2,60 @@
 
 import { DateTime } from "luxon";
 
-interface Block {
+type TimelineTask = {
   id: string;
-  title?: string;
-  start: number;
-  end: number;
-  taskId?: string;
-}
-
-interface Intermission {
-  id: string;
-  start: number;
-  end: number;
-}
+  title: string;
+  estimateMinutes?: number;
+  state: "todo" | "doing" | "done";
+  order?: number;
+};
 
 interface TimelineProps {
-  blocks: Block[];
-  intermissions: Intermission[];
-  onBlockAdd: (start: number, end: number, title?: string) => void;
-  onBlockShift?: (id: string, deltaMs: number) => void;
-  onBlockDelete?: (id: string) => void;
-  onBlockMoveTo?: (id: string, start: number, end: number) => void;
+  tasks: TimelineTask[];
   planDate: string;
 }
 
-export default function Timeline({
-  blocks,
-  intermissions,
-  onBlockAdd,
-  onBlockShift,
-  onBlockDelete,
-  onBlockMoveTo,
-  planDate,
-}: TimelineProps) {
-  const formatTime = (timestamp: number) => {
-    return DateTime.fromMillis(timestamp).toFormat("HH:mm");
-  };
-
-  const getDuration = (start: number, end: number) => {
-    const minutes = Math.floor((end - start) / 1000 / 60);
-    const hours = Math.floor(minutes / 60);
-    const remainingMinutes = minutes % 60;
-    return hours > 0
-      ? `${hours}時間${remainingMinutes}分`
-      : `${remainingMinutes}分`;
-  };
-
-  // 時間軸の時刻ラベル（6:00〜23:00）
-  const hours = Array.from({ length: 18 }, (_, i) => i + 6);
-  const ROW_PX = 48; // h-12 ≒ 48px
+export default function Timeline({ tasks, planDate }: TimelineProps) {
   const parsedPlanDate = DateTime.fromISO(planDate);
-  const dayStart = parsedPlanDate.isValid
+  const base = (parsedPlanDate.isValid
     ? parsedPlanDate.startOf("day")
-    : DateTime.now().startOf("day");
+    : DateTime.now().startOf("day")
+  ).plus({ hours: 6 });
+
+  const sorted = tasks.slice().sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+  const segments: Array<{
+    task: TimelineTask;
+    start: DateTime;
+    end: DateTime;
+    minutes: number;
+    visualMinutes: number;
+  }> = [];
+  let cursor = base;
+  for (const task of sorted) {
+    const minutes = Math.max(0, task.estimateMinutes ?? 0);
+    const visualMinutes = minutes || 30; // 未入力時は仮30分で並べる
+    const start = cursor;
+    const end = cursor.plus({ minutes: visualMinutes });
+    cursor = end;
+    segments.push({ task, start, end, minutes, visualMinutes });
+  }
 
   return (
     <div className="bg-white/95 backdrop-blur rounded-2xl shadow-md border border-border p-6">
       <div className="flex items-center gap-3 mb-6">
         <div className="w-1 h-8 rounded-full bg-gradient-to-b from-ink via-charcoal to-pastel-blue"></div>
-        <h2 className="text-2xl font-bold text-ink tracking-tight">タイムライン</h2>
+        <h2 className="text-2xl font-bold text-ink tracking-tight">
+          タイムライン
+        </h2>
         <div className="ml-auto px-3 py-1 rounded-full bg-charcoal text-white text-sm font-semibold shadow-sm">
-          {blocks.length} ブロック
+          {sorted.length} タスク
         </div>
       </div>
 
-      {/* タイムライン表示 */}
-      <div
-        className="relative"
-        onDragOver={(e) => {
-          if (!onBlockMoveTo) return;
-          e.preventDefault();
-        }}
-        onDrop={(e) => {
-          if (!onBlockMoveTo) return;
-          const data = e.dataTransfer?.getData("text/plain");
-          if (!data) return;
-          try {
-            const { id, duration } = JSON.parse(data) as {
-              id: string;
-              duration: number;
-            };
-            const timeline = e.currentTarget as HTMLDivElement;
-            const rect = timeline.getBoundingClientRect();
-            const y = e.clientY - rect.top;
-            const minutesFrom6 = Math.max(
-              0,
-              Math.min(Math.round((y / ROW_PX) * 60), 17 * 60),
-            );
-            const start = dayStart
-              .plus({ hours: 6, minutes: minutesFrom6 })
-              .toMillis();
-            onBlockMoveTo(id, start, start + duration);
-          } catch {}
-        }}
-      >
-        {/* 時刻軸 */}
-        <div className="flex flex-col gap-2 mb-4">
-          {hours.map((hour) => (
-            <div key={hour} className="flex items-center gap-3 h-12">
-              <div className="w-12 text-sm font-medium text-gray-500 text-right">
-                {hour}:00
-              </div>
-              <div className="flex-1 border-t border-dashed border-gray-200"></div>
-            </div>
-          ))}
-        </div>
-
-        {/* ブロック表示エリア */}
-        <div className="space-y-3">
-          {blocks.length === 0 && intermissions.length === 0 ? (
-            <div className="text-center py-12 text-gray-400">
-              <svg
-                className="w-16 h-16 mx-auto mb-4 text-pastel-lavender"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={1.5}
-                  d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                />
-              </svg>
-              <p className="text-lg font-medium">ブロックがありません</p>
-              <p className="text-sm mt-1">
-                時間ブロックを追加して予定を管理しましょう
-              </p>
-            </div>
-          ) : (
-            <>
-              {/* Intermissions */}
-              {intermissions.map((intermission) => (
-                <div
-                  key={intermission.id}
-                  className="flex items-center gap-3 p-4 rounded-xl border-2 border-dashed border-gray-300 bg-pastel-mist/60"
-                >
-                  <div className="flex-shrink-0 w-2 h-12 rounded-full bg-gray-400"></div>
-                  <div className="flex-1">
-                    <p className="text-sm font-medium text-gray-500">
-                      休憩時間
-                    </p>
-                    <p className="text-xs text-gray-400 mt-1">
-                      {formatTime(intermission.start)} -{" "}
-                      {formatTime(intermission.end)} (
-                      {getDuration(intermission.start, intermission.end)})
-                    </p>
-                  </div>
-                </div>
-              ))}
-
-              {/* Blocks */}
-              {blocks.map((block, index) => {
-                const colors = [
-                  "bg-ink/10 border-ink",
-                  "bg-charcoal/10 border-charcoal",
-                  "bg-pastel-blue/30 border-pastel-blue",
-                  "bg-pastel-pink/30 border-pastel-pink",
-                  "bg-pastel-lavender/30 border-pastel-lavender",
-                  "bg-pastel-peach/30 border-pastel-peach",
-                ];
-                const colorClass = colors[index % colors.length];
-
-                return (
-                  <div
-                    key={block.id}
-                    className={`flex items-center gap-3 p-4 rounded-xl border-2 ${colorClass} hover:scale-[1.02] transition-all duration-200 cursor-move`}
-                    draggable
-                    onDragStart={(e) => {
-                      const duration = block.end - block.start;
-                      e.dataTransfer.setData(
-                        "text/plain",
-                        JSON.stringify({ id: block.id, duration }),
-                      );
-                      e.dataTransfer.effectAllowed = "move";
-                    }}
-                  >
-                    <div
-                      className={`flex-shrink-0 w-2 h-12 rounded-full ${colorClass
-                        .split(" ")[1]
-                        .replace("border-", "bg-")}`}
-                    ></div>
-                    <div className="flex-1">
-                      <p className="font-medium text-foreground">
-                        {block.title || "無題のブロック"}
-                      </p>
-                      <p className="text-xs text-gray-500 mt-1">
-                        {formatTime(block.start)} - {formatTime(block.end)} (
-                        {getDuration(block.start, block.end)})
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      {onBlockShift && (
-                        <>
-                          <button
-                            title="-30分"
-                            onClick={() =>
-                              onBlockShift(block.id, -30 * 60 * 1000)
-                            }
-                            className="px-2 py-1 rounded border border-border text-sm hover:bg-white"
-                          >
-                            -30m
-                          </button>
-                          <button
-                            title="+30分"
-                            onClick={() =>
-                              onBlockShift(block.id, 30 * 60 * 1000)
-                            }
-                            className="px-2 py-1 rounded border border-border text-sm hover:bg-white"
-                          >
-                            +30m
-                          </button>
-                        </>
-                      )}
-                      {onBlockDelete && (
-                        <button
-                          title="削除"
-                          onClick={() => onBlockDelete(block.id)}
-                          className="px-2 py-1 rounded bg-error/10 hover:bg-error/20 text-error text-sm"
-                        >
-                          削除
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </>
-          )}
-        </div>
-
-        {/* 追加ボタン */}
-        <button
-          onClick={() => {
-            // 選択している日の現在時刻帯でブロックを追加
-            const now = DateTime.now();
-            const targetHour = Math.min(23, Math.max(6, now.hour));
-            const start = dayStart.plus({ hours: targetHour }).toMillis();
-            const end = dayStart.plus({ hours: targetHour + 1 }).toMillis();
-            onBlockAdd(start, end, "新しいブロック");
-          }}
-          className="mt-6 w-full py-4 rounded-xl border-2 border-dashed border-ink hover:bg-gray-50 text-ink font-medium transition-all duration-200 flex items-center justify-center gap-2"
-        >
+      {segments.length === 0 ? (
+        <div className="text-center py-12 text-gray-400">
           <svg
-            className="w-5 h-5"
+            className="w-16 h-16 mx-auto mb-4 text-pastel-lavender"
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
@@ -253,13 +63,48 @@ export default function Timeline({
             <path
               strokeLinecap="round"
               strokeLinejoin="round"
-              strokeWidth={2}
-              d="M12 4v16m8-8H4"
+              strokeWidth={1.5}
+              d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
             />
           </svg>
-          新しいブロックを追加
-        </button>
-      </div>
+          <p className="text-lg font-medium">まだタスクがありません</p>
+          <p className="text-sm mt-1">
+            明日の自分との約束を追加すると時間枠が並びます
+          </p>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {segments.map((segment, index) => {
+            const isDone = segment.task.state === "done";
+            return (
+              <div
+                key={segment.task.id}
+                className="flex items-center gap-3 p-4 rounded-xl border-2 border-border bg-gray-50/60"
+              >
+                <div className="flex flex-col items-center text-xs text-gray-500 w-16">
+                  <span>{segment.start.toFormat("HH:mm")}</span>
+                  <span className="text-gray-400">↓</span>
+                  <span>{segment.end.toFormat("HH:mm")}</span>
+                </div>
+                <div className="flex-1">
+                  <p
+                    className={`font-semibold ${
+                      isDone ? "line-through text-gray-400" : "text-ink"
+                    }`}
+                  >
+                    {index + 1}. {segment.task.title}
+                  </p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    {segment.minutes
+                      ? `${segment.minutes}分`
+                      : "時間未設定（仮30分で配置）"}
+                  </p>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

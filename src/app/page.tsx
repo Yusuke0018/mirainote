@@ -17,9 +17,6 @@ import {
   createTask as apiCreateTask,
   updateTask as apiUpdateTask,
   deleteTask as apiDeleteTask,
-  createBlock as apiCreateBlock,
-  updateBlock as apiUpdateBlock,
-  deleteBlock as apiDeleteBlock,
   interruptSchedule,
   closeDay,
   listGoals,
@@ -44,18 +41,6 @@ export default function Home() {
   const [currentDate, setCurrentDate] = useState(DateTime.now());
   const [planId, setPlanId] = useState<string | null>(null);
   const [tasks, setTasks] = useState<UITask[]>([]);
-  const [blocks, setBlocks] = useState<
-    {
-      id: string;
-      title?: string;
-      start: number;
-      end: number;
-      taskId?: string;
-    }[]
-  >([]);
-  const [intermissions, setIntermissions] = useState<
-    { id: string; start: number; end: number }[]
-  >([]);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [goals, setGoals] = useState<
@@ -117,22 +102,6 @@ export default function Home() {
           state: t.state as UITask["state"],
           estimateMinutes: t.estimateMinutes,
           order: (t as unknown as { order?: number }).order,
-        })),
-      );
-      setBlocks(
-        bundle.blocks.map((b) => ({
-          id: b.id,
-          title: b.title,
-          start: b.start,
-          end: b.end,
-          taskId: b.taskId,
-        })),
-      );
-      setIntermissions(
-        bundle.intermissions.map((i) => ({
-          id: i.id,
-          start: i.start,
-          end: i.end,
         })),
       );
       // goals (side-load)
@@ -234,34 +203,6 @@ export default function Home() {
     }
   };
 
-  const handleBlockShift = async (id: string, deltaMs: number) => {
-    const b = blocks.find((x) => x.id === id);
-    if (!b) return;
-    const before = blocks;
-    const next = { ...b, start: b.start + deltaMs, end: b.end + deltaMs };
-    setBlocks((prev) => prev.map((x) => (x.id === id ? next : x)));
-    try {
-      await apiUpdateBlock(id, { start: next.start, end: next.end });
-    } catch (err: unknown) {
-      const e = err as { status?: number; message?: string };
-      setBlocks(before);
-      if (e?.status === 409) setMessage("既存ブロックと重なります");
-      else setMessage(e?.message || "ブロック移動に失敗しました");
-    }
-  };
-
-  const handleBlockDelete = async (id: string) => {
-    const before = blocks;
-    setBlocks((prev) => prev.filter((b) => b.id !== id));
-    try {
-      await apiDeleteBlock(id);
-    } catch (err: unknown) {
-      const e = err as { message?: string };
-      setBlocks(before);
-      setMessage(e?.message || "ブロック削除に失敗しました");
-    }
-  };
-
   const handleGoalAdd = async (title: string, categoryId?: string) => {
     try {
       const { goal } = await createGoal({ title, categoryId });
@@ -304,36 +245,6 @@ export default function Home() {
       setTasks(before);
       const e = err as { message?: string };
       setMessage(e?.message || "タスク削除に失敗しました");
-    }
-  };
-
-  const handleBlockAdd = async (start: number, end: number, title?: string) => {
-    if (!planId) return;
-    const tempId = `tmp-${Date.now()}`;
-    setBlocks((prev) => [
-      ...prev,
-      { id: tempId, title: title || "新しいブロック", start, end },
-    ]);
-    try {
-      const { block } = await apiCreateBlock({ planId, start, end, title });
-      setBlocks((prev) =>
-        prev.map((b) =>
-          b.id === tempId
-            ? {
-                id: block.id,
-                title: block.title,
-                start: block.start,
-                end: block.end,
-                taskId: block.taskId,
-              }
-            : b,
-        ),
-      );
-    } catch (err: unknown) {
-      setBlocks((prev) => prev.filter((b) => b.id !== tempId));
-      const e = err as { status?: number; message?: string };
-      if (e?.status === 409) setMessage("既存ブロックと重なります");
-      else setMessage(e?.message || "ブロック追加に失敗しました");
     }
   };
 
@@ -708,30 +619,7 @@ export default function Home() {
 
           {/* タイムライン */}
           <div className="lg:col-span-1">
-            <Timeline
-              blocks={blocks}
-              intermissions={intermissions}
-              onBlockAdd={handleBlockAdd}
-              onBlockShift={handleBlockShift}
-              onBlockDelete={handleBlockDelete}
-              onBlockMoveTo={async (id, start, end) => {
-                const b = blocks.find((x) => x.id === id);
-                if (!b) return;
-                const before = blocks;
-                setBlocks((prev) =>
-                  prev.map((x) => (x.id === id ? { ...x, start, end } : x)),
-                );
-                try {
-                  await apiUpdateBlock(id, { start, end });
-                } catch (err: unknown) {
-                  const e = err as { status?: number; message?: string };
-                  setBlocks(before);
-                  if (e?.status === 409) setMessage("既存ブロックと重なります");
-                  else setMessage(e?.message || "ブロック移動に失敗しました");
-                }
-              }}
-              planDate={ymd}
-            />
+            <Timeline tasks={tasks} planDate={ymd} />
           </div>
         </div>
 

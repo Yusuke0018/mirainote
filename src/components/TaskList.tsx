@@ -226,36 +226,20 @@ export default function TaskList({
                 >
                   {task.title}
                 </p>
-                <div className="mt-2 flex items-center gap-3 text-xs text-gray-500">
-                  <div className="flex items-center gap-1">
-                    <span>見積:</span>
-                    <button
-                      title="-5m"
-                      className="px-2 py-0.5 rounded border border-border hover:bg-white"
-                      onClick={() =>
-                        onTaskUpdate(task.id, {
-                          estimateMinutes: Math.max(
-                            0,
-                            (task.estimateMinutes ?? 0) - 5,
-                          ),
-                        })
-                      }
-                    >
-                      -5
-                    </button>
-                    <span className="px-2">{task.estimateMinutes ?? 0}分</span>
-                    <button
-                      title="+5m"
-                      className="px-2 py-0.5 rounded border border-border hover:bg-white"
-                      onClick={() =>
-                        onTaskUpdate(task.id, {
-                          estimateMinutes: (task.estimateMinutes ?? 0) + 5,
-                        })
-                      }
-                    >
-                      +5
-                    </button>
-                  </div>
+                <div className="mt-2 flex items-center gap-4 text-xs text-gray-500 flex-wrap">
+                  <label className="flex items-center gap-2">
+                    <span>見積(分):</span>
+                    <input
+                      type="number"
+                      min={0}
+                      className="w-20 px-2 py-1 border border-border rounded bg-white text-gray-700"
+                      value={task.estimateMinutes ?? 0}
+                      onChange={(e) => {
+                        const next = Math.max(0, Number(e.target.value) || 0);
+                        onTaskUpdate(task.id, { estimateMinutes: next });
+                      }}
+                    />
+                  </label>
                   {goals.length > 0 && (
                     <div className="flex items-center gap-1">
                       <label htmlFor={`goal-${task.id}`}>目標:</label>
