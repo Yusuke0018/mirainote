@@ -7,6 +7,7 @@ import {
   Task as TaskT,
   Block as BlockT,
   Intermission as IntermissionT,
+  Checkin as CheckinT,
 } from "@/lib/schemas";
 
 type WithId<T> = T & { id: string };
@@ -85,4 +86,34 @@ export async function updateBlock(id: string, patch: UpdateBlockInput) {
 }
 export async function deleteBlock(id: string) {
   return api<{ ok: true }>(`/api/blocks/${id}`, { method: "DELETE" });
+}
+
+// Scheduler
+export async function interruptSchedule(input: {
+  planId: string;
+  start: number;
+  duration?: number;
+  end?: number;
+}) {
+  return api<{
+    ok: true;
+    moved: Array<{
+      id: string;
+      from: { start: number; end: number };
+      to: { start: number; end: number };
+    }>;
+    unplaced: Array<{ id: string; duration: number }>;
+    candidates: Array<{ label: string; start: number; end: number }>;
+  }>(`/api/scheduler/interrupt`, {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+// Review
+export async function closeDay(input?: { date?: string }) {
+  return api<{ ok: true; checkin: WithId<CheckinT>; nextPlanId: string }>(
+    `/api/review/close-day`,
+    { method: "POST", body: JSON.stringify(input ?? {}) },
+  );
 }

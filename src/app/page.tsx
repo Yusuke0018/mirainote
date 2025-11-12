@@ -1,10 +1,20 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { DateTime } from "luxon";
 import DateNavigation from "@/components/DateNavigation";
 import TaskList from "@/components/TaskList";
 import Timeline from "@/components/Timeline";
+import {
+  ensurePlan,
+  getPlan,
+  createTask as apiCreateTask,
+  updateTask as apiUpdateTask,
+  deleteTask as apiDeleteTask,
+  createBlock as apiCreateBlock,
+  interruptSchedule,
+  closeDay,
+} from "@/lib/client";
 
 export default function Home() {
   type UITask = {
@@ -14,74 +24,190 @@ export default function Home() {
     estimateMinutes?: number;
   };
   const [currentDate, setCurrentDate] = useState(DateTime.now());
-  const [tasks, setTasks] = useState<UITask[]>([
+  const [planId, setPlanId] = useState<string | null>(null);
+  const [tasks, setTasks] = useState<UITask[]>([]);
+  const [blocks, setBlocks] = useState<
     {
-      id: "1",
-      title: "サンプルタスク1",
-      state: "todo" as const,
-      estimateMinutes: 30,
-    },
-    {
-      id: "2",
-      title: "サンプルタスク2",
-      state: "doing" as const,
-      estimateMinutes: 60,
-    },
-  ]);
+      id: string;
+      title?: string;
+      start: number;
+      end: number;
+      taskId?: string;
+    }[]
+  >([]);
+  const [intermissions, setIntermissions] = useState<
+    { id: string; start: number; end: number }[]
+  >([]);
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
 
-  const [blocks, setBlocks] = useState([
-    {
-      id: "1",
-      title: "朝の作業",
-      start: DateTime.now().startOf("day").plus({ hours: 9 }).toMillis(),
-      end: DateTime.now().startOf("day").plus({ hours: 12 }).toMillis(),
-    },
-  ]);
+  const ymd = useMemo(() => currentDate.toFormat("yyyy-LL-dd"), [currentDate]);
 
-  const [intermissions] = useState([
-    {
-      id: "1",
-      start: DateTime.now().startOf("day").plus({ hours: 12 }).toMillis(),
-      end: DateTime.now().startOf("day").plus({ hours: 13 }).toMillis(),
-    },
-  ]);
-
-  const handleDateChange = (date: DateTime) => {
-    setCurrentDate(date);
-    // TODO: API経由で新しい日付のデータを取得
+  const fetchPlan = async (dateStr: string) => {
+    setLoading(true);
+    setMessage(null);
+    try {
+      const bundle = await getPlan(dateStr).catch(async (e: unknown) => {
+        const err = e as { status?: number };
+        if (err?.status === 404) return await ensurePlan(dateStr);
+        throw e;
+      });
+      setPlanId(bundle.plan.id);
+      setTasks(
+        bundle.tasks.map((t) => ({
+          id: t.id,
+          title: t.title,
+          state: t.state as UITask["state"],
+          estimateMinutes: t.estimateMinutes,
+        })),
+      );
+      setBlocks(
+        bundle.blocks.map((b) => ({
+          id: b.id,
+          title: b.title,
+          start: b.start,
+          end: b.end,
+          taskId: b.taskId,
+        })),
+      );
+      setIntermissions(
+        bundle.intermissions.map((i) => ({
+          id: i.id,
+          start: i.start,
+          end: i.end,
+        })),
+      );
+    } catch (err: unknown) {
+      const e = err as { message?: string };
+      setMessage(e?.message || "読み込みに失敗しました");
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleTaskAdd = (title: string) => {
-    const newTask: UITask = {
-      id: Date.now().toString(),
-      title,
-      state: "todo" as const,
-    };
-    setTasks([...tasks, newTask]);
-    // TODO: API経由でタスクを作成
+  useEffect(() => {
+    fetchPlan(ymd);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ymd]);
+
+  const handleDateChange = (date: DateTime) => setCurrentDate(date);
+
+  const handleTaskAdd = async (title: string) => {
+    if (!planId) return;
+    const tempId = `tmp-${Date.now()}`;
+    const optimistic: UITask = { id: tempId, title, state: "todo" };
+    setTasks((prev) => [...prev, optimistic]);
+    try {
+      const { task } = await apiCreateTask({ planId, title });
+      setTasks((prev) =>
+        prev.map((t) =>
+          t.id === tempId
+            ? {
+                id: task.id,
+                title: task.title,
+                state: task.state as UITask["state"],
+                estimateMinutes: task.estimateMinutes,
+              }
+            : t,
+        ),
+      );
+    } catch (err: unknown) {
+      setTasks((prev) => prev.filter((t) => t.id !== tempId));
+      const e = err as { message?: string };
+      setMessage(e?.message || "タスク追加に失敗しました");
+    }
   };
 
-  const handleTaskUpdate = (id: string, updates: Partial<UITask>) => {
-    setTasks(
-      tasks.map((task) => (task.id === id ? { ...task, ...updates } : task)),
+  const handleTaskUpdate = async (id: string, updates: Partial<UITask>) => {
+    const before = tasks;
+    setTasks((prev) =>
+      prev.map((t) => (t.id === id ? { ...t, ...updates } : t)),
     );
-    // TODO: API経由でタスクを更新
+    try {
+      const patch: { title?: string; state?: UITask['state']; estimateMinutes?: number } = {};
+      if (updates.title !== undefined) patch.title = updates.title;
+      if (updates.state !== undefined) patch.state = updates.state;
+      if (updates.estimateMinutes !== undefined) patch.estimateMinutes = updates.estimateMinutes;
+      await apiUpdateTask(id, patch);
+    } catch (err: unknown) {
+      setTasks(before);
+      const e = err as { message?: string };
+      setMessage(e?.message || "タスク更新に失敗しました");
+    }
   };
 
-  const handleTaskDelete = (id: string) => {
-    setTasks(tasks.filter((task) => task.id !== id));
-    // TODO: API経由でタスクを削除
+  const handleTaskDelete = async (id: string) => {
+    const before = tasks;
+    setTasks((prev) => prev.filter((t) => t.id !== id));
+    try {
+      await apiDeleteTask(id);
+    } catch (err: unknown) {
+      setTasks(before);
+      const e = err as { message?: string };
+      setMessage(e?.message || "タスク削除に失敗しました");
+    }
   };
 
-  const handleBlockAdd = (start: number, end: number, title?: string) => {
-    const newBlock = {
-      id: Date.now().toString(),
-      title: title || "新しいブロック",
-      start,
-      end,
-    };
-    setBlocks([...blocks, newBlock]);
-    // TODO: API経由でブロックを作成
+  const handleBlockAdd = async (start: number, end: number, title?: string) => {
+    if (!planId) return;
+    const tempId = `tmp-${Date.now()}`;
+    setBlocks((prev) => [
+      ...prev,
+      { id: tempId, title: title || "新しいブロック", start, end },
+    ]);
+    try {
+      const { block } = await apiCreateBlock({ planId, start, end, title });
+      setBlocks((prev) =>
+        prev.map((b) =>
+          b.id === tempId
+            ? {
+                id: block.id,
+                title: block.title,
+                start: block.start,
+                end: block.end,
+                taskId: block.taskId,
+              }
+            : b,
+        ),
+      );
+    } catch (err: unknown) {
+      setBlocks((prev) => prev.filter((b) => b.id !== tempId));
+      const e = err as { status?: number; message?: string };
+      if (e?.status === 409) setMessage("既存ブロックと重なります");
+      else setMessage(e?.message || "ブロック追加に失敗しました");
+    }
+  };
+
+  const handleInterrupt = async () => {
+    if (!planId) return;
+    setLoading(true);
+    setMessage(null);
+    try {
+      const now = DateTime.now().toMillis();
+      await interruptSchedule({ planId, start: now, duration: 30 * 60 * 1000 });
+      await fetchPlan(ymd);
+    } catch (err: unknown) {
+      const e = err as { message?: string };
+      setMessage(e?.message || "割り込み処理に失敗しました");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCloseDay = async () => {
+    setLoading(true);
+    setMessage(null);
+    try {
+      const res = await closeDay({ date: ymd });
+      setMessage(
+        `遵守率: ${(res.checkin.adherenceRate * 100).toFixed(0)}% / 引継ぎ: ${res.checkin.carryOverCount}件`,
+      );
+    } catch (err: unknown) {
+      const e = err as { message?: string };
+      setMessage(e?.message || "クローズ処理に失敗しました");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -111,8 +237,17 @@ export default function Home() {
               </h1>
             </div>
             <div className="ml-auto flex items-center gap-2">
-              <button className="px-4 py-2 rounded-lg bg-mint-lighter text-mint-green hover:bg-mint-light font-medium transition-all duration-200">
-                設定
+              <button
+                onClick={handleInterrupt}
+                className="px-3 py-2 rounded-lg bg-mint-lighter text-mint-green hover:bg-mint-light font-medium transition-all duration-200"
+              >
+                今すぐ割り込み(30分)
+              </button>
+              <button
+                onClick={handleCloseDay}
+                className="px-3 py-2 rounded-lg border border-border hover:bg-gray-50 font-medium transition-all duration-200"
+              >
+                今日をクローズ
               </button>
             </div>
           </div>
@@ -126,6 +261,12 @@ export default function Home() {
           currentDate={currentDate}
           onDateChange={handleDateChange}
         />
+
+        {message && (
+          <div className="mt-4 mb-6 px-4 py-3 rounded-lg border border-border bg-white text-sm text-gray-700">
+            {message}
+          </div>
+        )}
 
         {/* グリッドレイアウト */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -151,7 +292,9 @@ export default function Home() {
 
         {/* フッター */}
         <footer className="mt-12 text-center text-sm text-gray-500">
-          <p>みらいノート - あなたの未来を計画する</p>
+          <p>
+            {loading ? "処理中..." : "みらいノート - あなたの未来を計画する"}
+          </p>
         </footer>
       </main>
     </div>
