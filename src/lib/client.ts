@@ -158,7 +158,7 @@ export async function updateGoal(
   id: string,
   patch: {
     title?: string;
-    period?: 'year' | 'quarter' | 'month' | 'custom';
+    period?: "year" | "quarter" | "month" | "custom";
     startDate?: string;
     endDate?: string;
     color?: string;

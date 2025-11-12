@@ -7,7 +7,10 @@ const nextConfig: NextConfig = {
         // OAuthポップアップがwindow.closeできるようCOOPを緩和
         source: "/:path*",
         headers: [
-          { key: "Cross-Origin-Opener-Policy", value: "same-origin-allow-popups" },
+          {
+            key: "Cross-Origin-Opener-Policy",
+            value: "same-origin-allow-popups",
+          },
         ],
       },
     ];

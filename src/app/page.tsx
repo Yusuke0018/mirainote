@@ -72,6 +72,12 @@ export default function Home() {
   } | null>(null);
 
   const ymd = useMemo(() => currentDate.toFormat("yyyy-LL-dd"), [currentDate]);
+  const stats = useMemo(() => {
+    const todo = tasks.filter((t) => t.state === "todo").length;
+    const doing = tasks.filter((t) => t.state === "doing").length;
+    const done = tasks.filter((t) => t.state === "done").length;
+    return { todo, doing, done, total: tasks.length };
+  }, [tasks]);
 
   const fetchPlan = async (dateStr: string) => {
     setLoading(true);
@@ -375,9 +381,14 @@ export default function Home() {
                   />
                 </svg>
               </div>
-              <h1 className="text-2xl font-bold bg-gradient-to-r from-mint-green to-mint-light bg-clip-text text-transparent">
-                みらいノート
-              </h1>
+              <div className="flex flex-col">
+                <h1 className="text-2xl font-bold bg-gradient-to-r from-mint-green to-mint-light bg-clip-text text-transparent">
+                  みらいノート
+                </h1>
+                <span className="text-xs text-gray-500">
+                  計画と実行を、やさしく整える
+                </span>
+              </div>
             </div>
             <div className="ml-auto flex items-center gap-2">
               {userEmail ? (
@@ -417,11 +428,81 @@ export default function Home() {
 
       {/* メインコンテンツ */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* 目標（トップに配置） */}
+        <div className="mb-6">
+          <GoalsPanel
+            goals={goals}
+            onAdd={handleGoalAdd}
+            onDelete={handleGoalDelete}
+            onUpdate={async (
+              id,
+              patch: {
+                title?: string;
+                period?: string;
+                startDate?: string;
+                endDate?: string;
+                color?: string;
+              },
+            ) => {
+              try {
+                const { updateGoal } = await import("@/lib/client");
+                const pp = patch as {
+                  title?: string;
+                  period?: "year" | "quarter" | "month" | "custom";
+                  startDate?: string;
+                  endDate?: string;
+                  color?: string;
+                };
+                await updateGoal(id, pp);
+                // 極力局所更新
+                setGoals((prev) =>
+                  prev.map((g) =>
+                    g.id === id
+                      ? {
+                          ...g,
+                          title: patch.title ?? g.title,
+                          color: patch.color ?? g.color,
+                        }
+                      : g,
+                  ),
+                );
+              } catch (err: unknown) {
+                const e = err as { message?: string };
+                setMessage(e?.message || "目標の更新に失敗しました");
+              }
+            }}
+          />
+        </div>
+
         {/* 日付ナビゲーション */}
         <DateNavigation
           currentDate={currentDate}
           onDateChange={handleDateChange}
         />
+
+        {/* 今日のサマリ */}
+        <div className="mt-2 mb-6 grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div className="rounded-xl border border-border bg-white p-3">
+            <div className="text-xs text-gray-500">合計</div>
+            <div className="text-xl font-bold text-foreground">
+              {stats.total}
+            </div>
+          </div>
+          <div className="rounded-xl border border-pastel-blue bg-pastel-blue/10 p-3">
+            <div className="text-xs text-gray-600">未着手</div>
+            <div className="text-xl font-bold text-pastel-blue">
+              {stats.todo}
+            </div>
+          </div>
+          <div className="rounded-xl border border-pastel-yellow bg-pastel-yellow/20 p-3">
+            <div className="text-xs text-gray-700">作業中</div>
+            <div className="text-xl font-bold text-warning">{stats.doing}</div>
+          </div>
+          <div className="rounded-xl border border-mint-green bg-mint-light/20 p-3">
+            <div className="text-xs text-gray-700">完了</div>
+            <div className="text-xl font-bold text-success">{stats.done}</div>
+          </div>
+        </div>
 
         {message && (
           <div className="mt-4 mb-6 px-4 py-3 rounded-lg border border-border bg-white text-sm text-gray-700">
@@ -553,36 +634,7 @@ export default function Home() {
           </div>
         </div>
 
-        {/* 目標 */}
-        <div className="mt-6">
-          <GoalsPanel
-            goals={goals}
-            onAdd={handleGoalAdd}
-            onDelete={handleGoalDelete}
-            onUpdate={async (id, patch: { title?: string; period?: string; startDate?: string; endDate?: string; color?: string }) => {
-              try {
-                const { updateGoal } = await import("@/lib/client");
-                const pp = patch as { title?: string; period?: 'year'|'quarter'|'month'|'custom'; startDate?: string; endDate?: string; color?: string };
-                await updateGoal(id, pp);
-                // 極力局所更新
-                setGoals((prev) =>
-                  prev.map((g) =>
-                    g.id === id
-                      ? {
-                          ...g,
-                          title: patch.title ?? g.title,
-                          color: patch.color ?? g.color,
-                        }
-                      : g,
-                  ),
-                );
-              } catch (err: unknown) {
-                const e = err as { message?: string };
-                setMessage(e?.message || "目標の更新に失敗しました");
-              }
-            }}
-          />
-        </div>
+        {/* 目標はトップへ移設 */}
 
         {/* 夕方クローズ結果モーダル */}
         <Modal

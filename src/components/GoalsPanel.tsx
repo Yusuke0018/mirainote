@@ -1,5 +1,5 @@
 "use client";
-import React from 'react'
+import React from "react";
 
 interface Goal {
   id: string;
@@ -152,7 +152,11 @@ function GoalRow({
             <select
               className="px-2 py-1 border border-border rounded"
               value={period}
-              onChange={(e) => setPeriod(e.target.value as 'year'|'quarter'|'month'|'custom')}
+              onChange={(e) =>
+                setPeriod(
+                  e.target.value as "year" | "quarter" | "month" | "custom",
+                )
+              }
             >
               <option value="year">年</option>
               <option value="quarter">四半期</option>
