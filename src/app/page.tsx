@@ -59,7 +59,15 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [goals, setGoals] = useState<
-    { id: string; title: string; color?: string; categoryId?: string }[]
+    {
+      id: string;
+      title: string;
+      color?: string;
+      categoryId?: string;
+      period?: "year" | "quarter" | "month" | "custom";
+      startDate?: string;
+      endDate?: string;
+    }[]
   >([]);
   const [categories, setCategories] = useState<
     { id: string; name: string; color: string }[]
@@ -129,6 +137,9 @@ export default function Home() {
           title: g.title,
           color: g.color,
           categoryId: g.categoryId,
+          period: g.period,
+          startDate: g.startDate,
+          endDate: g.endDate,
         })),
       );
       const cat = await listCategories();
@@ -250,6 +261,9 @@ export default function Home() {
           title: goal.title,
           color: goal.color,
           categoryId: goal.categoryId,
+          period: goal.period,
+          startDate: goal.startDate,
+          endDate: goal.endDate,
         },
         ...prev,
       ]);
@@ -487,6 +501,9 @@ export default function Home() {
                           title: patch.title ?? g.title,
                           color: patch.color ?? g.color,
                           categoryId: patch.categoryId ?? g.categoryId,
+                          period: patch.period ?? g.period,
+                          startDate: patch.startDate ?? g.startDate,
+                          endDate: patch.endDate ?? g.endDate,
                         }
                       : g,
                   ),
@@ -701,6 +718,7 @@ export default function Home() {
                   else setMessage(e?.message || "ブロック移動に失敗しました");
                 }
               }}
+              planDate={ymd}
             />
           </div>
         </div>

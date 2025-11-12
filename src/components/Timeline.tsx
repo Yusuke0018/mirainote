@@ -23,6 +23,7 @@ interface TimelineProps {
   onBlockShift?: (id: string, deltaMs: number) => void;
   onBlockDelete?: (id: string) => void;
   onBlockMoveTo?: (id: string, start: number, end: number) => void;
+  planDate: string;
 }
 
 export default function Timeline({
@@ -32,6 +33,7 @@ export default function Timeline({
   onBlockShift,
   onBlockDelete,
   onBlockMoveTo,
+  planDate,
 }: TimelineProps) {
   const formatTime = (timestamp: number) => {
     return DateTime.fromMillis(timestamp).toFormat("HH:mm");
@@ -49,6 +51,10 @@ export default function Timeline({
   // 時間軸の時刻ラベル（6:00〜23:00）
   const hours = Array.from({ length: 18 }, (_, i) => i + 6);
   const ROW_PX = 48; // h-12 ≒ 48px
+  const parsedPlanDate = DateTime.fromISO(planDate);
+  const dayStart = parsedPlanDate.isValid
+    ? parsedPlanDate.startOf("day")
+    : DateTime.now().startOf("day");
 
   return (
     <div className="bg-white rounded-2xl shadow-sm border border-border p-6">
@@ -83,8 +89,7 @@ export default function Timeline({
               0,
               Math.min(Math.round((y / ROW_PX) * 60), 17 * 60),
             );
-            const start = DateTime.now()
-              .startOf("day")
+            const start = dayStart
               .plus({ hours: 6, minutes: minutesFrom6 })
               .toMillis();
             onBlockMoveTo(id, start, start + duration);
@@ -227,10 +232,11 @@ export default function Timeline({
         {/* 追加ボタン */}
         <button
           onClick={() => {
-            // デモ用: 現在時刻から1時間のブロックを追加
+            // 選択している日の現在時刻帯でブロックを追加
             const now = DateTime.now();
-            const start = now.startOf("hour").toMillis();
-            const end = now.startOf("hour").plus({ hours: 1 }).toMillis();
+            const targetHour = Math.min(23, Math.max(6, now.hour));
+            const start = dayStart.plus({ hours: targetHour }).toMillis();
+            const end = dayStart.plus({ hours: targetHour + 1 }).toMillis();
             onBlockAdd(start, end, "新しいブロック");
           }}
           className="mt-6 w-full py-4 rounded-xl border-2 border-dashed border-mint-green hover:bg-mint-lighter/20 text-mint-green font-medium transition-all duration-200 flex items-center justify-center gap-2"

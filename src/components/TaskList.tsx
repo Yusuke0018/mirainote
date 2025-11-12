@@ -1,5 +1,7 @@
 "use client";
 
+import React from "react";
+
 interface Task {
   id: string;
   title: string;
@@ -8,6 +10,27 @@ interface Task {
   goalId?: string;
   order?: number;
 }
+
+const PLEDGES = [
+  {
+    id: "focus15",
+    label: "全集中15分",
+    detail: "最初の15分は神速モード",
+    prompt: "最初の15分で終わらせたいこと",
+  },
+  {
+    id: "noCarry",
+    label: "持ち越しゼロ宣言",
+    detail: "今日決めたことは今日中に片付ける",
+    prompt: "今日を終えるための最後の1歩",
+  },
+  {
+    id: "tinyWin",
+    label: "小さな勝利を積む",
+    detail: "完了で自分を褒める",
+    prompt: "すぐ勝ち取れる具体的な勝利",
+  },
+] as const;
 
 interface TaskListProps {
   tasks: Task[];
@@ -28,6 +51,9 @@ export default function TaskList({
   onTaskReorder,
   onTaskReorderIndex,
 }: TaskListProps) {
+  const [selectedPledge, setSelectedPledge] = React.useState(PLEDGES[0].id);
+  const [pledgeLocked, setPledgeLocked] = React.useState(false);
+
   const handleAddTask = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
@@ -61,6 +87,12 @@ export default function TaskList({
   };
 
   const sorted = tasks.slice().sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+  const unfinished = tasks.filter((t) => t.state !== "done").length;
+  const finished = tasks.filter((t) => t.state === "done").length;
+  const completionRate =
+    tasks.length > 0 ? Math.round((finished / tasks.length) * 100) : 0;
+  const activePledge =
+    PLEDGES.find((pledge) => pledge.id === selectedPledge) || PLEDGES[0];
 
   return (
     <div className="bg-white rounded-2xl shadow-sm border border-border p-6">
@@ -72,22 +104,96 @@ export default function TaskList({
         </div>
       </div>
 
+      {/* 約束モジュール */}
+      <div className="mb-6 rounded-2xl border border-mint-green/50 bg-gradient-to-r from-mint-lighter via-white to-pastel-blue/20 p-4 shadow-[0_10px_40px_rgba(36,180,150,0.08)]">
+        <div className="flex flex-wrap items-center gap-2 mb-3">
+          <span className="text-sm font-semibold text-mint-green">今日の自分との約束</span>
+          <span className="text-xs text-gray-500">
+            {pledgeLocked
+              ? "ロック中。宣言どおりにタスクを書き出そう。"
+              : "気分に合う宣言をタップしてロックすると集中しやすくなります。"}
+          </span>
+        </div>
+        <div className="flex flex-wrap gap-2 mb-4">
+          {PLEDGES.map((pledge) => {
+            const active = pledge.id === selectedPledge;
+            return (
+              <button
+                key={pledge.id}
+                type="button"
+                onClick={() => {
+                  setSelectedPledge(pledge.id);
+                  setPledgeLocked(false);
+                }}
+                className={`flex flex-col items-start gap-1 rounded-2xl border px-3 py-2 text-left transition-all duration-200 ${
+                  active
+                    ? "border-mint-green bg-white shadow-lg"
+                    : "border-transparent bg-white/70 hover:border-mint-green/40"
+                }`}
+              >
+                <span className="text-sm font-semibold text-foreground">
+                  {pledge.label}
+                </span>
+                <span className="text-[11px] text-gray-500">{pledge.detail}</span>
+              </button>
+            );
+          })}
+        </div>
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+          <button
+            type="button"
+            onClick={() => setPledgeLocked((prev) => !prev)}
+            className={`inline-flex items-center justify-center rounded-full border px-4 py-2 text-sm font-semibold transition-all duration-200 ${
+              pledgeLocked
+                ? "border-transparent bg-mint-green text-white shadow-lg"
+                : "border-border text-mint-green hover:border-mint-green"
+            }`}
+          >
+            {pledgeLocked ? "約束ロック解除" : "この約束をロック"}
+          </button>
+          <div className="flex-1">
+            <div className="h-2 w-full overflow-hidden rounded-full bg-gray-200">
+              <div
+                className="h-full rounded-full bg-gradient-to-r from-mint-green to-mint-light transition-all duration-300"
+                style={{ width: `${completionRate}%` }}
+              />
+            </div>
+            <p className="mt-1 text-[11px] text-gray-500">
+              約束達成率 {completionRate}%（残り {unfinished} 件 / 完了 {finished} 件）
+            </p>
+          </div>
+        </div>
+      </div>
+
       {/* タスク追加フォーム */}
       <form onSubmit={handleAddTask} className="mb-6">
         <div className="flex gap-2">
           <input
             type="text"
             name="title"
-            placeholder="新しいタスクを追加..."
+            placeholder={
+              pledgeLocked
+                ? `宣言: ${activePledge.prompt}`
+                : "新しいタスクを追加..."
+            }
             className="flex-1 px-4 py-3 rounded-xl border-2 border-border bg-gray-50 focus:border-mint-green focus:bg-white outline-none transition-all duration-200 placeholder:text-gray-400"
           />
           <button
             type="submit"
-            className="px-6 py-3 rounded-xl bg-gradient-to-r from-mint-green to-mint-light text-white font-medium hover:shadow-lg hover:scale-105 transition-all duration-200"
+            className={`px-6 py-3 rounded-xl font-medium hover:shadow-lg hover:scale-105 transition-all duration-200 ${
+              pledgeLocked
+                ? "bg-gradient-to-r from-mint-green to-mint-light text-white"
+                : "bg-white text-mint-green border-2 border-mint-green"
+            }`}
           >
-            追加
+            {pledgeLocked ? "約束に追加" : "追加"}
           </button>
         </div>
+        {!pledgeLocked && (
+          <p className="mt-2 text-xs text-gray-500">
+            宣言をロックするとプレッシャーとワクワクを少しだけプラスします。
+          </p>
+        )}
       </form>
 
       {/* タスクリスト */}

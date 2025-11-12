@@ -6,6 +6,9 @@ interface Goal {
   title: string;
   color?: string;
   categoryId?: string;
+  period?: "year" | "quarter" | "month" | "custom";
+  startDate?: string;
+  endDate?: string;
 }
 
 interface GoalsPanelProps {
@@ -32,7 +35,13 @@ interface GoalsPanelProps {
   onCategoryDelete?: (id: string) => void;
 }
 
-const COLORS = ["#2fa38a", "#0ea5e9", "#f59e0b", "#ef4444", "#8b5cf6"];
+const COLOR_PRESETS = [
+  { value: "#2fa38a", label: "ミント", mood: "整える" },
+  { value: "#0ea5e9", label: "スカイ", mood: "軽やか" },
+  { value: "#f59e0b", label: "アンバー", mood: "情熱" },
+  { value: "#ef4444", label: "サンセット", mood: "火力" },
+  { value: "#8b5cf6", label: "ラベンダー", mood: "ひらめき" },
+] as const;
 
 export default function GoalsPanel({
   goals,
@@ -131,11 +140,19 @@ function GoalRow({
   const [title, setTitle] = React.useState(goal.title);
   const [period, setPeriod] = React.useState<
     "year" | "quarter" | "month" | "custom"
-  >("month");
-  const [startDate, setStartDate] = React.useState("");
-  const [endDate, setEndDate] = React.useState("");
+  >(goal.period ?? "month");
+  const [startDate, setStartDate] = React.useState(goal.startDate ?? "");
+  const [endDate, setEndDate] = React.useState(goal.endDate ?? "");
   const [categoryId, setCategoryId] = React.useState(goal.categoryId || "");
   const category = categories.find((c) => c.id === goal.categoryId) || null;
+
+  React.useEffect(() => {
+    setTitle(goal.title);
+    setPeriod(goal.period ?? "month");
+    setStartDate(goal.startDate ?? "");
+    setEndDate(goal.endDate ?? "");
+    setCategoryId(goal.categoryId || "");
+  }, [goal]);
 
   return (
     <div className="p-3 rounded-lg border-2 border-border bg-gray-50/50">
@@ -229,13 +246,20 @@ function GoalRow({
             <button
               className="px-3 py-1 rounded bg-mint-lighter text-mint-green hover:bg-mint-light text-sm"
               onClick={() => {
-                onUpdate?.(goal.id, {
+                const payload: {
+                  title?: string;
+                  period?: "year" | "quarter" | "month" | "custom";
+                  startDate?: string;
+                  endDate?: string;
+                  categoryId?: string;
+                } = {
                   title,
                   period,
-                  startDate,
-                  endDate,
                   categoryId: categoryId || undefined,
-                });
+                };
+                if (startDate) payload.startDate = startDate;
+                if (endDate) payload.endDate = endDate;
+                onUpdate?.(goal.id, payload);
                 setEditing(false);
               }}
             >
@@ -264,7 +288,7 @@ function CategoryManager({
 }) {
   const [open, setOpen] = React.useState(false);
   const [name, setName] = React.useState("");
-  const [color, setColor] = React.useState(COLORS[0]);
+  const [color, setColor] = React.useState(COLOR_PRESETS[0].value);
 
   return (
     <div className="mb-4">
@@ -276,68 +300,60 @@ function CategoryManager({
         {open ? "カテゴリーを隠す" : "カテゴリーを管理"}
       </button>
       {open && (
-        <div className="p-3 rounded-xl border border-border bg-gray-50/60 mb-2">
-          <div className="flex items-center gap-2">
+        <div className="p-3 rounded-xl border border-border bg-gray-50/60 mb-2 space-y-3">
+          <div className="flex flex-col sm:flex-row gap-2">
             <input
               className="px-2 py-1 border border-border rounded flex-1"
               placeholder="カテゴリー名"
               value={name}
               onChange={(e) => setName(e.target.value)}
             />
-            <select
-              className="px-2 py-1 border border-border rounded"
-              value={color}
-              onChange={(e) => setColor(e.target.value)}
-            >
-              {COLORS.map((c) => (
-                <option key={c} value={c}>
-                  {c}
-                </option>
-              ))}
-            </select>
             <button
               className="px-3 py-1 rounded bg-mint-lighter text-mint-green hover:bg-mint-light text-sm"
               onClick={() => {
                 if (!name.trim()) return;
                 onAdd?.(name.trim(), color);
                 setName("");
+                setColor(COLOR_PRESETS[0].value);
               }}
             >
               追加
             </button>
           </div>
+          <div>
+            <p className="text-xs text-gray-500 mb-1">カラーを選択</p>
+            <ColorSwatchPicker value={color} onChange={setColor} />
+          </div>
           <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2">
             {categories.map((c) => (
               <div
                 key={c.id}
-                className="flex items-center gap-2 p-2 rounded border border-border bg-white"
+                className="flex flex-col gap-2 p-2 rounded border border-border bg-white"
               >
-                <div
-                  className="w-3 h-3 rounded-full"
-                  style={{ backgroundColor: c.color }}
+                <div className="flex items-center gap-2">
+                  <div
+                    className="w-3 h-3 rounded-full"
+                    style={{ backgroundColor: c.color }}
+                  />
+                  <input
+                    className="px-2 py-1 border border-border rounded flex-1"
+                    defaultValue={c.name}
+                    onBlur={(e) => onUpdate?.(c.id, { name: e.target.value })}
+                  />
+                  <button
+                    className="px-2 py-1 rounded bg-error/10 hover:bg-error/20 text-error text-sm"
+                    onClick={() => onDelete?.(c.id)}
+                  >
+                    削除
+                  </button>
+                </div>
+                <ColorSwatchPicker
+                  value={c.color}
+                  onChange={(selected) =>
+                    onUpdate?.(c.id, { color: selected })
+                  }
+                  size="compact"
                 />
-                <input
-                  className="px-2 py-1 border border-border rounded flex-1"
-                  defaultValue={c.name}
-                  onBlur={(e) => onUpdate?.(c.id, { name: e.target.value })}
-                />
-                <select
-                  className="px-2 py-1 border border-border rounded"
-                  defaultValue={c.color}
-                  onChange={(e) => onUpdate?.(c.id, { color: e.target.value })}
-                >
-                  {COLORS.map((cc) => (
-                    <option key={cc} value={cc}>
-                      {cc}
-                    </option>
-                  ))}
-                </select>
-                <button
-                  className="px-2 py-1 rounded bg-error/10 hover:bg-error/20 text-error text-sm"
-                  onClick={() => onDelete?.(c.id)}
-                >
-                  削除
-                </button>
               </div>
             ))}
             {categories.length === 0 && (
@@ -348,6 +364,51 @@ function CategoryManager({
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+function ColorSwatchPicker({
+  value,
+  onChange,
+  size = "default",
+}: {
+  value: string;
+  onChange: (color: string) => void;
+  size?: "default" | "compact";
+}) {
+  return (
+    <div className="flex flex-wrap gap-2">
+      {COLOR_PRESETS.map((preset) => {
+        const active = preset.value === value;
+        return (
+          <button
+            key={preset.value}
+            type="button"
+            onClick={() => onChange(preset.value)}
+            className={`flex items-center gap-2 px-2 py-1 rounded-full border text-xs transition-all duration-200 ${
+              active
+                ? "border-mint-green bg-mint-lighter text-foreground shadow-sm"
+                : "border-border text-gray-500 hover:border-mint-green"
+            }`}
+            aria-pressed={active}
+            title={`${preset.label}（${preset.mood}）`}
+          >
+            <span
+              className="inline-block w-3 h-3 rounded-full"
+              style={{ backgroundColor: preset.value }}
+            />
+            <span className="font-medium">
+              {preset.label}
+              {size === "default" && (
+                <span className="text-[10px] text-gray-400 ml-1">
+                  {preset.mood}
+                </span>
+              )}
+            </span>
+          </button>
+        );
+      })}
     </div>
   );
 }
