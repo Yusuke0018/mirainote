@@ -22,21 +22,28 @@ export type PlanBundle = {
   intermissions: WithId<IntermissionT>[];
 };
 
-function getAuthHeaders(): HeadersInit {
+import { getIdToken } from "@/lib/firebaseClient";
+
+async function getAuthHeaders(): Promise<HeadersInit> {
+  // ブラウザでFirebase AuthのIDトークンがあれば優先して付与
+  try {
+    const idToken = await getIdToken();
+    if (idToken) return { Authorization: `Bearer ${idToken}` };
+  } catch {}
   // 開発中は x-debug-user を優先（.envでAUTH_DEBUG_ENABLED=1時に機能）
   if (typeof process !== "undefined" && process.env.NEXT_PUBLIC_DEBUG_UID) {
     return { "x-debug-user": process.env.NEXT_PUBLIC_DEBUG_UID };
   }
-  // ブラウザ側でFirebase AuthからidTokenを取得し、呼び出し前に注入する想定
   return {};
 }
 
 async function api<T>(path: string, init?: RequestInit): Promise<T> {
+  const authHeaders = await getAuthHeaders();
   const res = await fetch(path, {
     ...init,
     headers: {
       "content-type": "application/json",
-      ...getAuthHeaders(),
+      ...authHeaders,
       ...(init?.headers || {}),
     },
   });

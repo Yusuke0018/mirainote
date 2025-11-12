@@ -6,6 +6,12 @@ import DateNavigation from "@/components/DateNavigation";
 import TaskList from "@/components/TaskList";
 import Timeline from "@/components/Timeline";
 import {
+  initAuthListener,
+  signInWithGoogle,
+  signOutUser,
+  getCurrentUser,
+} from "@/lib/firebaseClient";
+import {
   ensurePlan,
   getPlan,
   createTask as apiCreateTask,
@@ -49,6 +55,7 @@ export default function Home() {
   const [goals, setGoals] = useState<
     { id: string; title: string; color?: string }[]
   >([]);
+  const [userEmail, setUserEmail] = useState<string | null>(null);
 
   const ymd = useMemo(() => currentDate.toFormat("yyyy-LL-dd"), [currentDate]);
 
@@ -98,6 +105,16 @@ export default function Home() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    // Auth state polling (簡易): 1秒ごとにEmailを反映
+    initAuthListener();
+    const t = setInterval(() => {
+      const u = getCurrentUser();
+      setUserEmail(u?.email ?? null);
+    }, 1000);
+    return () => clearInterval(t);
+  }, []);
 
   useEffect(() => {
     fetchPlan(ymd);
@@ -313,6 +330,24 @@ export default function Home() {
               </h1>
             </div>
             <div className="ml-auto flex items-center gap-2">
+              {userEmail ? (
+                <>
+                  <span className="text-sm text-gray-600">{userEmail}</span>
+                  <button
+                    onClick={() => signOutUser()}
+                    className="px-3 py-2 rounded-lg border border-border hover:bg-gray-50 font-medium transition-all duration-200"
+                  >
+                    ログアウト
+                  </button>
+                </>
+              ) : (
+                <button
+                  onClick={() => signInWithGoogle()}
+                  className="px-3 py-2 rounded-lg bg-mint-lighter text-mint-green hover:bg-mint-light font-medium transition-all duration-200"
+                >
+                  Googleでログイン
+                </button>
+              )}
               <button
                 onClick={handleInterrupt}
                 className="px-3 py-2 rounded-lg bg-mint-lighter text-mint-green hover:bg-mint-light font-medium transition-all duration-200"

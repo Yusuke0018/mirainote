@@ -10,7 +10,10 @@ export async function GET(req: NextRequest) {
       .where("userId", "==", uid)
       .orderBy("createdAt", "desc")
       .get();
-    const goals = q.docs.map((d) => ({ id: d.id, ...(d.data() as Record<string, unknown>) }));
+    const goals = q.docs.map((d) => ({
+      id: d.id,
+      ...(d.data() as Record<string, unknown>),
+    }));
     return NextResponse.json({ goals });
   } catch (e: unknown) {
     const err = e as { status?: number; message?: string };
