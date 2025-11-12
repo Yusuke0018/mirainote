@@ -1,19 +1,22 @@
 # プロジェクト構造（自動生成）
 
-生成時刻: 2025-11-12T07:39:15.665Z
+生成時刻: 2025-11-12T09:58:45.834Z
 
 ```
-.env.example
+.github
+.github/workflows
+.github/workflows/ci.yml
 .gitignore
 README.md
 docs
+docs/API_ROUTES.md
 docs/ARCHITECTURE.md
 docs/ONBOARDING.md
+docs/STRUCTURE.md
 docs/status.md
 docs/ui-handbook.md
 eslint.config.mjs
 firestore.rules
-next-env.d.ts
 next.config.ts
 package-lock.json
 package.json
@@ -34,6 +37,10 @@ src/app/api/blocks
 src/app/api/blocks/[id]
 src/app/api/blocks/[id]/route.ts
 src/app/api/blocks/route.ts
+src/app/api/categories
+src/app/api/categories/[id]
+src/app/api/categories/[id]/route.ts
+src/app/api/categories/route.ts
 src/app/api/goals
 src/app/api/goals/[id]
 src/app/api/goals/[id]/route.ts
@@ -59,6 +66,7 @@ src/app/page.tsx
 src/components
 src/components/DateNavigation.tsx
 src/components/GoalsPanel.tsx
+src/components/Modal.tsx
 src/components/TaskList.tsx
 src/components/Timeline.tsx
 src/lib
