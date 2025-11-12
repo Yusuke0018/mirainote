@@ -11,6 +11,7 @@ export const col = {
   intermissions: db.collection("intermissions"),
   checkins: db.collection("checkins"),
   goals: db.collection("goals"),
+  categories: db.collection("categories"),
 };
 
 export type WithId<T> = T & { id: string };

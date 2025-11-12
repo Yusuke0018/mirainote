@@ -25,6 +25,10 @@ import {
   listGoals,
   createGoal,
   deleteGoal,
+  listCategories,
+  createCategory as apiCreateCategory,
+  updateCategory as apiUpdateCategory,
+  deleteCategory as apiDeleteCategory,
 } from "@/lib/client";
 import GoalsPanel from "@/components/GoalsPanel";
 import Modal from "@/components/Modal";
@@ -55,7 +59,10 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [goals, setGoals] = useState<
-    { id: string; title: string; color?: string }[]
+    { id: string; title: string; color?: string; categoryId?: string }[]
+  >([]);
+  const [categories, setCategories] = useState<
+    { id: string; name: string; color: string }[]
   >([]);
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [candidates, setCandidates] = useState<
@@ -117,7 +124,16 @@ export default function Home() {
       // goals (side-load)
       const gl = await listGoals();
       setGoals(
-        gl.goals.map((g) => ({ id: g.id, title: g.title, color: g.color })),
+        gl.goals.map((g) => ({
+          id: g.id,
+          title: g.title,
+          color: g.color,
+          categoryId: g.categoryId,
+        })),
+      );
+      const cat = await listCategories();
+      setCategories(
+        cat.categories.map((c) => ({ id: c.id, name: c.name, color: c.color })),
       );
     } catch (err: unknown) {
       const e = err as { message?: string };
@@ -225,11 +241,16 @@ export default function Home() {
     }
   };
 
-  const handleGoalAdd = async (title: string) => {
+  const handleGoalAdd = async (title: string, categoryId?: string) => {
     try {
-      const { goal } = await createGoal({ title });
+      const { goal } = await createGoal({ title, categoryId });
       setGoals((prev) => [
-        { id: goal.id, title: goal.title, color: goal.color },
+        {
+          id: goal.id,
+          title: goal.title,
+          color: goal.color,
+          categoryId: goal.categoryId,
+        },
         ...prev,
       ]);
     } catch (err: unknown) {
@@ -432,6 +453,7 @@ export default function Home() {
         <div className="mb-6">
           <GoalsPanel
             goals={goals}
+            categories={categories}
             onAdd={handleGoalAdd}
             onDelete={handleGoalDelete}
             onUpdate={async (
@@ -442,6 +464,7 @@ export default function Home() {
                 startDate?: string;
                 endDate?: string;
                 color?: string;
+                categoryId?: string;
               },
             ) => {
               try {
@@ -452,6 +475,7 @@ export default function Home() {
                   startDate?: string;
                   endDate?: string;
                   color?: string;
+                  categoryId?: string;
                 };
                 await updateGoal(id, pp);
                 // 極力局所更新
@@ -462,6 +486,7 @@ export default function Home() {
                           ...g,
                           title: patch.title ?? g.title,
                           color: patch.color ?? g.color,
+                          categoryId: patch.categoryId ?? g.categoryId,
                         }
                       : g,
                   ),
@@ -469,6 +494,52 @@ export default function Home() {
               } catch (err: unknown) {
                 const e = err as { message?: string };
                 setMessage(e?.message || "目標の更新に失敗しました");
+              }
+            }}
+            onCategoryAdd={async (name, color) => {
+              try {
+                const { category } = await apiCreateCategory({ name, color });
+                setCategories((prev) => [
+                  ...prev,
+                  {
+                    id: category.id,
+                    name: category.name,
+                    color: category.color,
+                  },
+                ]);
+              } catch (err: unknown) {
+                const e = err as { message?: string };
+                setMessage(e?.message || "カテゴリーの追加に失敗しました");
+              }
+            }}
+            onCategoryUpdate={async (id, patch) => {
+              try {
+                const { category } = await apiUpdateCategory(id, patch);
+                setCategories((prev) =>
+                  prev.map((c) =>
+                    c.id === id
+                      ? {
+                          id: category.id,
+                          name: category.name,
+                          color: category.color,
+                        }
+                      : c,
+                  ),
+                );
+              } catch (err: unknown) {
+                const e = err as { message?: string };
+                setMessage(e?.message || "カテゴリーの更新に失敗しました");
+              }
+            }}
+            onCategoryDelete={async (id) => {
+              const before = categories;
+              setCategories((prev) => prev.filter((c) => c.id !== id));
+              try {
+                await apiDeleteCategory(id);
+              } catch (err: unknown) {
+                setCategories(before);
+                const e = err as { message?: string };
+                setMessage(e?.message || "カテゴリーの削除に失敗しました");
               }
             }}
           />

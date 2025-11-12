@@ -11,6 +11,9 @@ import {
   Goal as GoalT,
   CreateGoalInput,
   UpdateGoalInput,
+  Category as CategoryT,
+  CreateCategoryInput,
+  UpdateCategoryInput,
 } from "@/lib/schemas";
 
 type WithId<T> = T & { id: string };
@@ -171,4 +174,24 @@ export async function updateGoal(
 }
 export async function deleteGoal(id: string) {
   return api<{ ok: true }>(`/api/goals/${id}`, { method: "DELETE" });
+}
+
+// Categories
+export async function listCategories() {
+  return api<{ categories: Array<WithId<CategoryT>> }>(`/api/categories`);
+}
+export async function createCategory(input: CreateCategoryInput) {
+  return api<{ category: WithId<CategoryT> }>(`/api/categories`, {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+export async function updateCategory(id: string, patch: UpdateCategoryInput) {
+  return api<{ category: WithId<CategoryT> }>(`/api/categories/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify(patch),
+  });
+}
+export async function deleteCategory(id: string) {
+  return api<{ ok: true }>(`/api/categories/${id}`, { method: "DELETE" });
 }

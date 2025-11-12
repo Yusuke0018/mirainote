@@ -72,6 +72,7 @@ export const Goal = BaseDoc.extend({
     .regex(/^\d{4}-\d{2}-\d{2}$/)
     .optional(),
   color: z.string().optional(),
+  categoryId: z.string().optional(),
 });
 export type Goal = z.infer<typeof Goal>;
 
@@ -87,6 +88,7 @@ export const CreateGoalInput = z.object({
     .regex(/^\d{4}-\d{2}-\d{2}$/)
     .optional(),
   color: z.string().optional(),
+  categoryId: z.string().optional(),
 });
 export type CreateGoalInput = z.infer<typeof CreateGoalInput>;
 
@@ -102,8 +104,31 @@ export const UpdateGoalInput = z.object({
     .regex(/^\d{4}-\d{2}-\d{2}$/)
     .optional(),
   color: z.string().optional(),
+  categoryId: z.string().optional(),
 });
 export type UpdateGoalInput = z.infer<typeof UpdateGoalInput>;
+
+// Categories
+export const Category = BaseDoc.extend({
+  name: z.string().min(1),
+  color: z.string().default("#2fa38a"),
+  order: z.number().int().min(0).default(0),
+});
+export type Category = z.infer<typeof Category>;
+
+export const CreateCategoryInput = z.object({
+  name: z.string().min(1),
+  color: z.string().optional(),
+  order: z.number().int().min(0).optional(),
+});
+export type CreateCategoryInput = z.infer<typeof CreateCategoryInput>;
+
+export const UpdateCategoryInput = z.object({
+  name: z.string().min(1).optional(),
+  color: z.string().optional(),
+  order: z.number().int().min(0).optional(),
+});
+export type UpdateCategoryInput = z.infer<typeof UpdateCategoryInput>;
 
 // Input DTOs
 export const CreatePlanInput = z.object({

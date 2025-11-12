@@ -31,6 +31,13 @@ service cloud.firestore {
       allow create: if isOwnerCreate();
       allow read, update, delete: if isOwner();
     }
+    match /goals/{id} {
+      allow create: if isOwnerCreate();
+      allow read, update, delete: if isOwner();
+    }
+    match /categories/{id} {
+      allow create: if isOwnerCreate();
+      allow read, update, delete: if isOwner();
+    }
   }
 }
-
