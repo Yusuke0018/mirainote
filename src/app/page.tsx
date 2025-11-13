@@ -7,7 +7,6 @@ import TaskList from "@/components/TaskList";
 import Timeline from "@/components/Timeline";
 import {
   initAuthListener,
-  signInWithGoogle,
   signOutUser,
   getCurrentUser,
   getAuthDebugInfo,

@@ -1,9 +1,6 @@
 import { initializeApp, getApps, type FirebaseApp } from "firebase/app";
 import {
   getAuth,
-  GoogleAuthProvider,
-  signInWithPopup,
-  signInWithRedirect,
   signOut,
   onIdTokenChanged,
   sendSignInLinkToEmail,
@@ -96,17 +93,6 @@ export async function completeEmailLinkSignIn(): Promise<boolean> {
   } catch (error) {
     console.error("メールリンク認証エラー:", error);
     throw error;
-  }
-}
-
-// Google認証（後方互換性のため残す）
-export async function signInWithGoogle() {
-  const auth = getAuth(getFirebaseClientApp());
-  const provider = new GoogleAuthProvider();
-  try {
-    await signInWithPopup(auth, provider);
-  } catch (e) {
-    await signInWithRedirect(auth, provider);
   }
 }
 
