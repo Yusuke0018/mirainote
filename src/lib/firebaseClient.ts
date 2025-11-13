@@ -40,7 +40,14 @@ export async function getIdToken(): Promise<string | null> {
   if (typeof window === "undefined") return null;
   const auth = getAuth(getFirebaseClientApp());
   const user = auth.currentUser;
-  if (user) return await user.getIdToken();
+  if (user) {
+    try {
+      return await user.getIdToken(false); // false = use cached token
+    } catch (error) {
+      console.error("Failed to get ID token:", error);
+      return null;
+    }
+  }
   return currentToken;
 }
 

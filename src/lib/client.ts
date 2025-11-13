@@ -31,12 +31,25 @@ async function getAuthHeaders(): Promise<HeadersInit> {
   // ブラウザでFirebase AuthのIDトークンがあれば優先して付与
   try {
     const idToken = await getIdToken();
-    if (idToken) return { Authorization: `Bearer ${idToken}` };
-  } catch {}
-  // 開発中は x-debug-user を優先（.envでAUTH_DEBUG_ENABLED=1時に機能）
-  if (typeof process !== "undefined" && process.env.NEXT_PUBLIC_DEBUG_UID) {
-    return { "x-debug-user": process.env.NEXT_PUBLIC_DEBUG_UID };
+    if (idToken) {
+      console.debug("✅ Using Firebase ID token for authentication");
+      return { Authorization: `Bearer ${idToken}` };
+    }
+  } catch (error) {
+    console.error("❌ Failed to get ID token:", error);
   }
+
+  // 開発中は x-debug-user を優先（.envでAUTH_DEBUG_ENABLED=1時に機能）
+  const debugUid = typeof window !== "undefined"
+    ? (window as unknown as { NEXT_PUBLIC_DEBUG_UID?: string }).NEXT_PUBLIC_DEBUG_UID || process.env.NEXT_PUBLIC_DEBUG_UID
+    : process.env.NEXT_PUBLIC_DEBUG_UID;
+
+  if (debugUid) {
+    console.debug("🔧 Using debug UID:", debugUid);
+    return { "x-debug-user": debugUid };
+  }
+
+  console.warn("⚠️ No authentication headers available - API requests will fail with 401");
   return {};
 }
 

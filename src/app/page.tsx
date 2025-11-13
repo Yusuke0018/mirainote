@@ -211,6 +211,13 @@ export default function Home() {
     if (cached) {
       applySnapshot(cached);
     }
+
+    // 認証状態チェック（ログイン済みかつトークンがない場合は待機）
+    if (!authDebug.hasToken && authDebug.hasUser) {
+      setMessage("認証情報を取得中です。しばらくお待ちください...");
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+    }
+
     try {
       const bundle = await getPlan(dateStr).catch(async (e: unknown) => {
         const err = e as { status?: number };
@@ -301,6 +308,13 @@ export default function Home() {
   useEffect(() => {
     let mounted = true;
     (async () => {
+      // 認証準備完了まで待機（最大3秒）
+      let retries = 0;
+      while (retries < 6 && !authDebug.hasToken && authDebug.hasUser) {
+        await new Promise((resolve) => setTimeout(resolve, 500));
+        retries++;
+      }
+
       try {
         const [gl, cat] = await Promise.all([listGoals(), listCategories()]);
         if (!mounted) return;
@@ -326,7 +340,7 @@ export default function Home() {
     return () => {
       mounted = false;
     };
-  }, [resolveMessage]);
+  }, [resolveMessage, authDebug.hasToken, authDebug.hasUser]);
 
   useEffect(() => {
     fetchPlan(ymd);
