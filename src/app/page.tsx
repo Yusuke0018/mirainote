@@ -10,8 +10,9 @@ import {
   signOutUser,
   getCurrentUser,
   getAuthDebugInfo,
-  sendEmailLink,
-  completeEmailLinkSignIn,
+  signInWithEmail,
+  getSavedEmail,
+  autoSignIn,
 } from "@/lib/firebaseClient";
 import {
   ensurePlan,
@@ -80,8 +81,7 @@ export default function Home() {
     debugUid: undefined as string | undefined,
   });
   const [emailInput, setEmailInput] = useState("");
-  const [emailSent, setEmailSent] = useState(false);
-  const [sendingEmail, setSendingEmail] = useState(false);
+  const [signingIn, setSigningIn] = useState(false);
   const showTimeline = false;
   type CachedSnapshot = {
     planId: string;
@@ -290,25 +290,27 @@ export default function Home() {
     initAuthListener();
     const t = setInterval(() => {
       const u = getCurrentUser();
-      setUserEmail(u?.email ?? null);
+      const savedEmail = getSavedEmail();
+      setUserEmail(savedEmail || u?.email || null);
     }, 1000);
     return () => clearInterval(t);
   }, []);
 
-  // メールリンク認証の処理（ページ読み込み時）
+  // 自動ログイン処理（ページ読み込み時）
   useEffect(() => {
     let mounted = true;
     (async () => {
       try {
-        const completed = await completeEmailLinkSignIn();
-        if (completed && mounted) {
-          setMessage("✅ ログインに成功しました！");
-          // URLからクエリパラメータを削除してクリーンなURLに
-          window.history.replaceState({}, document.title, window.location.pathname);
+        const loggedIn = await autoSignIn();
+        if (loggedIn && mounted) {
+          const email = getSavedEmail();
+          if (email) {
+            setUserEmail(email);
+          }
         }
       } catch (error) {
         if (mounted) {
-          console.error("Email link sign-in error:", error);
+          console.error("自動ログインエラー:", error);
         }
       }
     })();
@@ -606,7 +608,7 @@ export default function Home() {
     }
   };
 
-  const handleEmailLinkSend = async () => {
+  const handleEmailSignIn = async () => {
     if (!emailInput.trim()) {
       setMessage("メールアドレスを入力してください");
       return;
@@ -619,18 +621,19 @@ export default function Home() {
       return;
     }
 
-    setSendingEmail(true);
+    setSigningIn(true);
     setMessage(null);
 
     try {
-      await sendEmailLink(emailInput.trim());
-      setEmailSent(true);
-      setMessage(`✉️ ${emailInput} にログインリンクを送信しました。メールをご確認ください。`);
+      await signInWithEmail(emailInput.trim());
+      setUserEmail(emailInput.trim());
+      setMessage(`✅ ${emailInput} でログインしました`);
+      setEmailInput(""); // 入力欄をクリア
     } catch (err: unknown) {
       const e = err as { message?: string };
-      setMessage(`メール送信に失敗しました: ${e?.message || "不明なエラー"}`);
+      setMessage(`ログインに失敗しました: ${e?.message || "不明なエラー"}`);
     } finally {
-      setSendingEmail(false);
+      setSigningIn(false);
     }
   };
 
@@ -697,16 +700,15 @@ export default function Home() {
                     {userEmail}
                   </span>
                   <button
-                    onClick={() => signOutUser()}
+                    onClick={() => {
+                      signOutUser();
+                      setUserEmail(null);
+                    }}
                     className="px-3 py-1.5 rounded-lg border border-border text-xs sm:text-sm hover:bg-gray-50 font-medium transition-all duration-200"
                   >
                     ログアウト
                   </button>
                 </>
-              ) : emailSent ? (
-                <span className="text-xs sm:text-sm text-mint-green font-medium">
-                  📧 メールを確認してください
-                </span>
               ) : (
                 <div className="flex items-center gap-2">
                   <input
@@ -715,17 +717,17 @@ export default function Home() {
                     value={emailInput}
                     onChange={(e) => setEmailInput(e.target.value)}
                     onKeyDown={(e) => {
-                      if (e.key === "Enter") handleEmailLinkSend();
+                      if (e.key === "Enter") handleEmailSignIn();
                     }}
                     className="px-3 py-1.5 rounded-lg border border-border text-xs sm:text-sm w-40 sm:w-48"
-                    disabled={sendingEmail}
+                    disabled={signingIn}
                   />
                   <button
-                    onClick={handleEmailLinkSend}
-                    disabled={sendingEmail}
+                    onClick={handleEmailSignIn}
+                    disabled={signingIn}
                     className="px-3 py-1.5 rounded-lg bg-mint-lighter text-mint-green hover:bg-mint-light font-medium transition-all duration-200 text-xs sm:text-sm disabled:opacity-50"
                   >
-                    {sendingEmail ? "送信中..." : "ログイン"}
+                    {signingIn ? "処理中..." : "ログイン"}
                   </button>
                 </div>
               )}

@@ -3,9 +3,7 @@ import {
   getAuth,
   signOut,
   onIdTokenChanged,
-  sendSignInLinkToEmail,
-  isSignInWithEmailLink,
-  signInWithEmailLink,
+  signInAnonymously,
   type User,
 } from "firebase/auth";
 
@@ -51,54 +49,61 @@ export async function getIdToken(): Promise<string | null> {
   return currentToken;
 }
 
-// メールリンク認証（パスワードレス）
-export async function sendEmailLink(email: string): Promise<void> {
+// メールアドレスのみでログイン（匿名認証 + メールアドレス保存）
+export async function signInWithEmail(email: string): Promise<void> {
   const auth = getAuth(getFirebaseClientApp());
-  const actionCodeSettings = {
-    // ログイン完了後のリダイレクト先
-    url: window.location.origin,
-    handleCodeInApp: true,
-  };
 
-  await sendSignInLinkToEmail(auth, email, actionCodeSettings);
-  // メールアドレスをlocalStorageに保存（確認時に使用）
-  window.localStorage.setItem("emailForSignIn", email);
+  // 既にログイン済みの場合はスキップ
+  if (auth.currentUser) {
+    // メールアドレスをlocalStorageに保存
+    window.localStorage.setItem("userEmail", email);
+    return;
+  }
+
+  // Firebase匿名認証でログイン
+  await signInAnonymously(auth);
+
+  // メールアドレスをlocalStorageに保存
+  window.localStorage.setItem("userEmail", email);
 }
 
-export async function completeEmailLinkSignIn(): Promise<boolean> {
+// localStorageからメールアドレスを取得
+export function getSavedEmail(): string | null {
+  if (typeof window === "undefined") return null;
+  return window.localStorage.getItem("userEmail");
+}
+
+// 自動ログイン（ページ読み込み時）
+export async function autoSignIn(): Promise<boolean> {
   const auth = getAuth(getFirebaseClientApp());
 
-  // URLがサインインリンクかチェック
-  if (!isSignInWithEmailLink(auth, window.location.href)) {
-    return false;
-  }
-
-  // localStorageからメールアドレスを取得
-  let email = window.localStorage.getItem("emailForSignIn");
-
-  // メールアドレスがない場合はユーザーに再入力を求める
-  if (!email) {
-    email = window.prompt("確認のため、メールアドレスを再入力してください");
-  }
-
-  if (!email) {
-    throw new Error("メールアドレスが必要です");
-  }
-
-  try {
-    await signInWithEmailLink(auth, email, window.location.href);
-    // ログイン成功後、localStorageをクリア
-    window.localStorage.removeItem("emailForSignIn");
+  // 既にログイン済みならスキップ
+  if (auth.currentUser) {
     return true;
-  } catch (error) {
-    console.error("メールリンク認証エラー:", error);
-    throw error;
   }
+
+  // localStorageにメールアドレスがあれば自動ログイン
+  const savedEmail = getSavedEmail();
+  if (savedEmail) {
+    try {
+      await signInAnonymously(auth);
+      return true;
+    } catch (error) {
+      console.error("自動ログインエラー:", error);
+      return false;
+    }
+  }
+
+  return false;
 }
 
 export async function signOutUser() {
   const auth = getAuth(getFirebaseClientApp());
   await signOut(auth);
+  // localStorageのメールアドレスも削除
+  if (typeof window !== "undefined") {
+    window.localStorage.removeItem("userEmail");
+  }
 }
 
 export function getCurrentUser() {
