@@ -75,8 +75,10 @@ export default function Home() {
   const ymd = useMemo(() => currentDate.toFormat("yyyy-LL-dd"), [currentDate]);
   const todayDate = DateTime.now().startOf("day");
   const tomorrowDate = todayDate.plus({ days: 1 });
-  const isTodayPlan = ymd === todayDate.toFormat("yyyy-LL-dd");
-  const isTomorrowPlan = ymd === tomorrowDate.toFormat("yyyy-LL-dd");
+  const todayStr = todayDate.toFormat("yyyy-LL-dd");
+  const tomorrowStr = tomorrowDate.toFormat("yyyy-LL-dd");
+  const isTodayPlan = ymd === todayStr;
+  const isTomorrowPlan = ymd === tomorrowStr;
   const canAddTaskForPlan = isTodayPlan || isTomorrowPlan;
   const planDateLabel = currentDate.toFormat("yyyy年M月d日 (ccc)", {
     locale: "ja",
@@ -116,6 +118,7 @@ export default function Home() {
       task: { id: string; title: string; estimateMinutes?: number },
       snapshot?: typeof blocks,
     ) => {
+      if (!showTimeline) return null;
       const base = snapshot ?? blocks;
       const duration = task.estimateMinutes ?? 30;
       const slot = findSlotForDuration(duration, base);
@@ -138,7 +141,7 @@ export default function Home() {
       }
       return normalized;
     },
-    [blocks, findSlotForDuration],
+    [blocks, findSlotForDuration, showTimeline],
   );
 
   const ensureBlocksForTasks = useCallback(
@@ -151,6 +154,7 @@ export default function Home() {
       }[],
       initialBlocks: typeof blocks,
     ) => {
+      if (!showTimeline) return initialBlocks;
       const snapshot = [...initialBlocks];
       for (const task of taskList) {
         if (snapshot.some((b) => b.taskId === task.id)) continue;
@@ -167,7 +171,7 @@ export default function Home() {
       }
       return snapshot;
     },
-    [createBlockForTask],
+    [createBlockForTask, showTimeline],
   );
 
   const fetchPlan = async (dateStr: string) => {
@@ -190,22 +194,7 @@ export default function Home() {
           timingNote: (t as unknown as { timingNote?: string }).timingNote,
         })),
       );
-      let nextBlocks = bundle.blocks.map((b) => ({
-        id: b.id,
-        title: b.title,
-        start: b.start,
-        end: b.end,
-        taskId: b.taskId,
-      }));
-      setIntermissions(
-        bundle.intermissions.map((i) => ({
-          id: i.id,
-          start: i.start,
-          end: i.end,
-        })),
-      );
-      // goals (side-load)
-      const gl = await listGoals();
+      const [gl, cat] = await Promise.all([listGoals(), listCategories()]);
       setGoals(
         gl.goals.map((g) => ({
           id: g.id,
@@ -217,17 +206,34 @@ export default function Home() {
           endDate: g.endDate,
         })),
       );
-      const cat = await listCategories();
       setCategories(
         cat.categories.map((c) => ({ id: c.id, name: c.name, color: c.color })),
       );
-      // ensure timeline blocks exist for every task
-      nextBlocks = await ensureBlocksForTasks(
-        bundle.plan.id,
-        bundle.tasks,
-        nextBlocks,
-      );
-      setBlocks(nextBlocks);
+      if (showTimeline) {
+        let nextBlocks = bundle.blocks.map((b) => ({
+          id: b.id,
+          title: b.title,
+          start: b.start,
+          end: b.end,
+          taskId: b.taskId,
+        }));
+        setIntermissions(
+          bundle.intermissions.map((i) => ({
+            id: i.id,
+            start: i.start,
+            end: i.end,
+          })),
+        );
+        nextBlocks = await ensureBlocksForTasks(
+          bundle.plan.id,
+          bundle.tasks,
+          nextBlocks,
+        );
+        setBlocks(nextBlocks);
+      } else {
+        setBlocks([]);
+        setIntermissions([]);
+      }
     } catch (err: unknown) {
       const e = err as { message?: string };
       setMessage(e?.message || "読み込みに失敗しました");
@@ -282,20 +288,17 @@ export default function Home() {
             : t,
         ),
       );
-      try {
-        if (planId) {
-          await createBlockForTask(
-            planId,
-            {
-              id: task.id,
-              title: task.title,
-              estimateMinutes: task.estimateMinutes,
-            },
-          );
+      if (showTimeline && planId) {
+        try {
+          await createBlockForTask(planId, {
+            id: task.id,
+            title: task.title,
+            estimateMinutes: task.estimateMinutes,
+          });
+        } catch (err: unknown) {
+          const e = err as { message?: string };
+          setMessage(e?.message || "タイムラインへの反映に失敗しました");
         }
-      } catch (err: unknown) {
-        const e = err as { message?: string };
-        setMessage(e?.message || "タイムラインへの反映に失敗しました");
       }
     } catch (err: unknown) {
       setTasks((prev) => prev.filter((t) => t.id !== tempId));
@@ -329,9 +332,15 @@ export default function Home() {
       patch.timingNote = (updates as { timingNote?: string }).timingNote;
     }
 
-    const linkedBlock = blocks.find((b) => b.taskId === id);
+    const linkedBlock = showTimeline
+      ? blocks.find((b) => b.taskId === id)
+      : null;
     let blockPromise: Promise<unknown> | null = null;
-    if (linkedBlock && (updates.title !== undefined || updates.estimateMinutes !== undefined)) {
+    if (
+      showTimeline &&
+      linkedBlock &&
+      (updates.title !== undefined || updates.estimateMinutes !== undefined)
+    ) {
       const blockPatch: { title?: string; end?: number } = {};
       if (updates.title !== undefined) {
         blockPatch.title = updates.title;
@@ -484,15 +493,19 @@ export default function Home() {
   const handleTaskDelete = async (id: string) => {
     const beforeTasks = tasks;
     const beforeBlocks = blocks;
-    const linkedBlock = blocks.find((b) => b.taskId === id);
+    const linkedBlock = showTimeline
+      ? blocks.find((b) => b.taskId === id)
+      : null;
     setTasks((prev) => prev.filter((t) => t.id !== id));
-    if (linkedBlock) {
+    if (showTimeline && linkedBlock) {
       setBlocks((prev) => prev.filter((b) => b.id !== linkedBlock.id));
     }
     try {
       await Promise.all([
         apiDeleteTask(id),
-        linkedBlock ? apiDeleteBlock(linkedBlock.id) : Promise.resolve(),
+        showTimeline && linkedBlock
+          ? apiDeleteBlock(linkedBlock.id)
+          : Promise.resolve(),
       ]);
     } catch (err: unknown) {
       setTasks(beforeTasks);
