@@ -1,6 +1,6 @@
 # プロジェクト構造（自動生成）
 
-生成時刻: 2025-11-12T09:58:45.834Z
+生成時刻: 2025-11-13T02:51:17.698Z
 
 ```
 .github
@@ -13,6 +13,7 @@ docs/API_ROUTES.md
 docs/ARCHITECTURE.md
 docs/ONBOARDING.md
 docs/STRUCTURE.md
+docs/email-link-auth-setup.md
 docs/status.md
 docs/ui-handbook.md
 eslint.config.mjs
@@ -24,6 +25,7 @@ postcss.config.mjs
 public
 public/file.svg
 public/globe.svg
+public/mirainote-icon.svg
 public/next.svg
 public/vercel.svg
 public/window.svg
@@ -33,6 +35,9 @@ scripts/list-api.mjs
 src
 src/app
 src/app/api
+src/app/api/auth
+src/app/api/auth/email-login
+src/app/api/auth/email-login/route.ts
 src/app/api/blocks
 src/app/api/blocks/[id]
 src/app/api/blocks/[id]/route.ts
@@ -62,6 +67,7 @@ src/app/api/tasks/route.ts
 src/app/favicon.ico
 src/app/globals.css
 src/app/layout.tsx
+src/app/manifest.ts
 src/app/page.tsx
 src/components
 src/components/DateNavigation.tsx

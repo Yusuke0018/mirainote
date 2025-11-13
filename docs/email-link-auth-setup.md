@@ -1,26 +1,17 @@
-# 即座にログイン（Firebase匿名認証）設定手順
+# 即座にログイン（カスタムトークン）設定手順
 
 みらいノートでは、メールアドレスを入力するだけで即座にログインできる認証方式を採用しています。
 
 ## Firebase コンソールでの設定
 
-### 1. Firebase Console にアクセス
+1. https://console.firebase.google.com/ でプロジェクトを開く
+2. 「Authentication」を有効化し、初期セットアップを完了する
+3. 左タブの「設定 (Settings) > 承認済みドメイン (Authorized domains)」に以下を追加
+   - `localhost`（ローカル開発用）
+   - `127.0.0.1`
+   - `mirainote-zrox.vercel.app` など、デプロイ先のドメイン
 
-https://console.firebase.google.com/ にアクセスし、プロジェクトを選択
-
-### 2. Authentication を有効化
-
-1. 左メニューから「Authentication」を選択
-2. 「始める」ボタンをクリック（初回のみ）
-
-### 3. 匿名認証を有効化
-
-1. 「Sign-in method」タブを選択
-2. 「匿名」プロバイダをクリック
-3. **「有効にする」をオンにする**
-4. 「保存」をクリック
-
-これだけで完了です！メール送信の設定は不要です。
+※ 今回は Firebase Admin SDK でカスタムトークンを発行する方式なので、匿名認証やメールリンク認証を有効にする必要はありません。
 
 ## Vercel 環境変数の確認
 
@@ -41,12 +32,19 @@ FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY----
 
 ## 使い方
 
-### ログイン手順
+### ログイン手順（クライアント側）
 
 1. アプリにアクセス
 2. ヘッダーのメールアドレス入力欄に、自分のメールアドレスを入力
 3. 「ログイン」ボタンをクリック
 4. **即座にログイン完了！** ✨（メール確認不要）
+
+### バックエンドの流れ
+
+1. `POST /api/auth/email-login` にメールアドレスを送信
+2. サーバーで `uid = email:<base64url(email)>` を生成し、Firebase Admin SDK でカスタムトークンを発行
+3. クライアントはトークンで `signInWithCustomToken` を実行
+4. 取得した Firebase ID トークンを各 API で `Authorization: Bearer <token>` として送信
 
 ### 自動ログイン
 
@@ -58,9 +56,9 @@ FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY----
 
 #### ログインできない場合
 
-1. Firebase Console で「匿名認証」が有効になっているか確認
-2. ブラウザのコンソールでエラーメッセージを確認
-3. ブラウザのキャッシュとlocalStorageをクリアして再度ログイン
+1. Firebase Authentication の「承認済みドメイン」にデプロイ先ドメインが追加されているか確認
+2. エラーが `400 OPERATION_NOT_ALLOWED` の場合、APIキーが誤っている可能性があります
+3. ブラウザのキャッシュと localStorage をクリアして再度ログイン
 
 #### 401 Unauthorized エラーが出る場合
 
@@ -74,6 +72,7 @@ FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY----
 1. ブラウザのlocalStorageが有効になっているか確認
 2. プライベートモード・シークレットモードを使用していないか確認
 3. ブラウザのCookieとストレージの設定を確認
+4. それでも改善しない場合は、一度ログアウト→メールアドレスを再入力してログイン
 
 ## 開発環境でのテスト
 
@@ -101,12 +100,12 @@ NEXT_PUBLIC_DEBUG_UID=test-user-123
 ## セキュリティ考慮事項
 
 - **個人利用向け**: この認証方式は、個人が自分のデバイス（PCとスマホ）でのみ使用することを想定しています
-- **匿名認証**: Firebase の匿名認証を使用しており、各デバイスに一意の認証トークンが発行されます
+- **カスタムトークン**: メールアドレスから決定的に生成される Firebase UID を使用し、Firebase Admin SDK がトークンを発行します
 - **メールアドレスの保存**: メールアドレスはブラウザのlocalStorageに保存されます（表示用のみ）
 - **本番環境**: 必ず HTTPS を使用してください
 - **APIアクセス**: サーバー側でFirebase ID トークンを検証し、認証済みユーザーのみがデータにアクセスできます
 
 ## 参考資料
 
-- [Firebase Authentication - Anonymous](https://firebase.google.com/docs/auth/web/anonymous-auth)
+- [Firebase Authentication - Custom Tokens](https://firebase.google.com/docs/auth/admin/create-custom-tokens)
 - [Firebase Admin SDK - Verify ID Tokens](https://firebase.google.com/docs/auth/admin/verify-id-tokens)

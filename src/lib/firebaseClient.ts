@@ -3,7 +3,7 @@ import {
   getAuth,
   signOut,
   onIdTokenChanged,
-  signInAnonymously,
+  signInWithCustomToken,
   type User,
 } from "firebase/auth";
 
@@ -49,19 +49,34 @@ export async function getIdToken(): Promise<string | null> {
   return currentToken;
 }
 
-// メールアドレスのみでログイン（匿名認証 + メールアドレス保存）
+async function requestEmailLoginToken(email: string): Promise<string> {
+  const res = await fetch("/api/auth/email-login", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ email }),
+  });
+  const data = (await res.json().catch(() => ({}))) as { token?: string; error?: string };
+  if (!res.ok) {
+    throw new Error(data?.error || "メールログインAPIでエラーが発生しました");
+  }
+  if (!data?.token) {
+    throw new Error("メールログインAPIから有効なトークンを受信できませんでした");
+  }
+  return data.token;
+}
+
+async function signInWithEmailToken(auth: ReturnType<typeof getAuth>, email: string) {
+  const token = await requestEmailLoginToken(email);
+  await signInWithCustomToken(auth, token);
+}
+
+// メールアドレスのみでログイン（カスタムトークン + メールアドレス保存）
 export async function signInWithEmail(email: string): Promise<void> {
   const auth = getAuth(getFirebaseClientApp());
 
-  // 既にログイン済みの場合はスキップ
-  if (auth.currentUser) {
-    // メールアドレスをlocalStorageに保存
-    window.localStorage.setItem("userEmail", email);
-    return;
+  if (!auth.currentUser) {
+    await signInWithEmailToken(auth, email);
   }
-
-  // Firebase匿名認証でログイン
-  await signInAnonymously(auth);
 
   // メールアドレスをlocalStorageに保存
   window.localStorage.setItem("userEmail", email);
@@ -84,17 +99,15 @@ export async function autoSignIn(): Promise<boolean> {
 
   // localStorageにメールアドレスがあれば自動ログイン
   const savedEmail = getSavedEmail();
-  if (savedEmail) {
-    try {
-      await signInAnonymously(auth);
-      return true;
-    } catch (error) {
-      console.error("自動ログインエラー:", error);
-      return false;
-    }
-  }
+  if (!savedEmail) return false;
 
-  return false;
+  try {
+    await signInWithEmailToken(auth, savedEmail);
+    return true;
+  } catch (error) {
+    console.error("自動ログインエラー:", error);
+    return false;
+  }
 }
 
 export async function signOutUser() {
