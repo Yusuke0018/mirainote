@@ -11,6 +11,8 @@ import {
   signOutUser,
   getCurrentUser,
   getAuthDebugInfo,
+  sendEmailLink,
+  completeEmailLinkSignIn,
 } from "@/lib/firebaseClient";
 import {
   ensurePlan,
@@ -78,6 +80,9 @@ export default function Home() {
     email: null as string | null,
     debugUid: undefined as string | undefined,
   });
+  const [emailInput, setEmailInput] = useState("");
+  const [emailSent, setEmailSent] = useState(false);
+  const [sendingEmail, setSendingEmail] = useState(false);
   const showTimeline = false;
   type CachedSnapshot = {
     planId: string;
@@ -289,6 +294,28 @@ export default function Home() {
       setUserEmail(u?.email ?? null);
     }, 1000);
     return () => clearInterval(t);
+  }, []);
+
+  // メールリンク認証の処理（ページ読み込み時）
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const completed = await completeEmailLinkSignIn();
+        if (completed && mounted) {
+          setMessage("✅ ログインに成功しました！");
+          // URLからクエリパラメータを削除してクリーンなURLに
+          window.history.replaceState({}, document.title, window.location.pathname);
+        }
+      } catch (error) {
+        if (mounted) {
+          console.error("Email link sign-in error:", error);
+        }
+      }
+    })();
+    return () => {
+      mounted = false;
+    };
   }, []);
 
   useEffect(() => {
@@ -580,6 +607,34 @@ export default function Home() {
     }
   };
 
+  const handleEmailLinkSend = async () => {
+    if (!emailInput.trim()) {
+      setMessage("メールアドレスを入力してください");
+      return;
+    }
+
+    // 簡易的なメールバリデーション
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(emailInput.trim())) {
+      setMessage("有効なメールアドレスを入力してください");
+      return;
+    }
+
+    setSendingEmail(true);
+    setMessage(null);
+
+    try {
+      await sendEmailLink(emailInput.trim());
+      setEmailSent(true);
+      setMessage(`✉️ ${emailInput} にログインリンクを送信しました。メールをご確認ください。`);
+    } catch (err: unknown) {
+      const e = err as { message?: string };
+      setMessage(`メール送信に失敗しました: ${e?.message || "不明なエラー"}`);
+    } finally {
+      setSendingEmail(false);
+    }
+  };
+
   const handleTaskDelete = async (id: string) => {
     const beforeTasks = tasks;
     const beforeBlocks = blocks;
@@ -649,13 +704,31 @@ export default function Home() {
                     ログアウト
                   </button>
                 </>
+              ) : emailSent ? (
+                <span className="text-xs sm:text-sm text-mint-green font-medium">
+                  📧 メールを確認してください
+                </span>
               ) : (
-                <button
-                  onClick={() => signInWithGoogle()}
-                  className="px-3 py-1.5 rounded-lg bg-mint-lighter text-mint-green hover:bg-mint-light font-medium transition-all duration-200 text-xs sm:text-sm"
-                >
-                  Googleでログイン
-                </button>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="email"
+                    placeholder="メールアドレス"
+                    value={emailInput}
+                    onChange={(e) => setEmailInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") handleEmailLinkSend();
+                    }}
+                    className="px-3 py-1.5 rounded-lg border border-border text-xs sm:text-sm w-40 sm:w-48"
+                    disabled={sendingEmail}
+                  />
+                  <button
+                    onClick={handleEmailLinkSend}
+                    disabled={sendingEmail}
+                    className="px-3 py-1.5 rounded-lg bg-mint-lighter text-mint-green hover:bg-mint-light font-medium transition-all duration-200 text-xs sm:text-sm disabled:opacity-50"
+                  >
+                    {sendingEmail ? "送信中..." : "ログイン"}
+                  </button>
+                </div>
               )}
             </div>
           </div>

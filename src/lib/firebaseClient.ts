@@ -6,6 +6,9 @@ import {
   signInWithRedirect,
   signOut,
   onIdTokenChanged,
+  sendSignInLinkToEmail,
+  isSignInWithEmailLink,
+  signInWithEmailLink,
   type User,
 } from "firebase/auth";
 
@@ -51,6 +54,52 @@ export async function getIdToken(): Promise<string | null> {
   return currentToken;
 }
 
+// メールリンク認証（パスワードレス）
+export async function sendEmailLink(email: string): Promise<void> {
+  const auth = getAuth(getFirebaseClientApp());
+  const actionCodeSettings = {
+    // ログイン完了後のリダイレクト先
+    url: window.location.origin,
+    handleCodeInApp: true,
+  };
+
+  await sendSignInLinkToEmail(auth, email, actionCodeSettings);
+  // メールアドレスをlocalStorageに保存（確認時に使用）
+  window.localStorage.setItem("emailForSignIn", email);
+}
+
+export async function completeEmailLinkSignIn(): Promise<boolean> {
+  const auth = getAuth(getFirebaseClientApp());
+
+  // URLがサインインリンクかチェック
+  if (!isSignInWithEmailLink(auth, window.location.href)) {
+    return false;
+  }
+
+  // localStorageからメールアドレスを取得
+  let email = window.localStorage.getItem("emailForSignIn");
+
+  // メールアドレスがない場合はユーザーに再入力を求める
+  if (!email) {
+    email = window.prompt("確認のため、メールアドレスを再入力してください");
+  }
+
+  if (!email) {
+    throw new Error("メールアドレスが必要です");
+  }
+
+  try {
+    await signInWithEmailLink(auth, email, window.location.href);
+    // ログイン成功後、localStorageをクリア
+    window.localStorage.removeItem("emailForSignIn");
+    return true;
+  } catch (error) {
+    console.error("メールリンク認証エラー:", error);
+    throw error;
+  }
+}
+
+// Google認証（後方互換性のため残す）
 export async function signInWithGoogle() {
   const auth = getAuth(getFirebaseClientApp());
   const provider = new GoogleAuthProvider();
