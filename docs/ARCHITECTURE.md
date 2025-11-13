@@ -61,7 +61,7 @@ mirainote/
 - `Task { userId, planId, title, estimateMinutes, order, state, goalId? }`
 - `Block { userId, planId, taskId?, title?, start, end, lockedLength, movable }`
 - `Intermission { userId, planId, start, end }`
-- `Goal { userId, title, period, order, startDate?, endDate?, color?, categoryId? }`
+- `Goal { userId, title, period, order, subGoals[], startDate?, endDate?, color?, categoryId? }`
 - `Checkin { userId, planId, adherenceRate, carryOverCount, checked }`
 
 ## スケジューラ（割り込み）

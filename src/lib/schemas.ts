@@ -61,10 +61,18 @@ export const Checkin = BaseDoc.extend({
 export type Checkin = z.infer<typeof Checkin>;
 
 // Goals
+export const SubGoal = z.object({
+  id: z.string().min(1),
+  title: z.string().min(1),
+  completedAt: z.number().int().optional(),
+});
+export type SubGoal = z.infer<typeof SubGoal>;
+
 export const Goal = BaseDoc.extend({
   title: z.string().min(1),
   period: z.enum(["year", "quarter", "month", "custom"]).default("month"),
   order: z.number().int().optional().default(0),
+  subGoals: z.array(SubGoal).default([]),
   startDate: z
     .string()
     .regex(/^\d{4}-\d{2}-\d{2}$/)
@@ -82,6 +90,7 @@ export const CreateGoalInput = z.object({
   title: z.string().min(1),
   period: z.enum(["year", "quarter", "month", "custom"]).optional(),
   order: z.number().int().optional(),
+  subGoals: z.array(SubGoal).optional(),
   startDate: z
     .string()
     .regex(/^\d{4}-\d{2}-\d{2}$/)
@@ -99,6 +108,7 @@ export const UpdateGoalInput = z.object({
   title: z.string().min(1).optional(),
   period: z.enum(["year", "quarter", "month", "custom"]).optional(),
   order: z.number().int().optional(),
+  subGoals: z.array(SubGoal).optional(),
   startDate: z
     .string()
     .regex(/^\d{4}-\d{2}-\d{2}$/)

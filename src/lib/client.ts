@@ -179,6 +179,7 @@ export async function updateGoal(
     color?: string;
     order?: number;
     categoryId?: string;
+    subGoals?: { id: string; title: string; completedAt?: number }[];
   },
 ) {
   return api<{ goal: WithId<GoalT> }>(`/api/goals/${id}`, {

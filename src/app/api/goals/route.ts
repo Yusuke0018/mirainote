@@ -10,7 +10,7 @@ export async function GET(req: NextRequest) {
     const goals = q.docs
       .map((d) => ({
         id: d.id,
-        ...(d.data() as Record<string, unknown>),
+        ...(d.data() as Goal),
       }))
       .sort((a, b) => {
         const orderA =

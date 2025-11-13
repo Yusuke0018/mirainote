@@ -10,6 +10,13 @@ interface Goal {
   startDate?: string;
   endDate?: string;
   order?: number;
+  subGoals?: SubGoal[];
+}
+
+interface SubGoal {
+  id: string;
+  title: string;
+  completedAt?: number;
 }
 
 interface GoalsPanelProps {
@@ -36,6 +43,8 @@ interface GoalsPanelProps {
   ) => void;
   onCategoryDelete?: (id: string) => void;
   onReorder?: (orderedIds: string[]) => void;
+  onSubGoalAdd?: (goalId: string, title: string) => void;
+  onSubGoalToggle?: (goalId: string, subGoalId: string, done: boolean) => void;
 }
 
 const COLOR_PRESETS = [
@@ -56,6 +65,8 @@ export default function GoalsPanel({
   onCategoryUpdate,
   onCategoryDelete,
   onReorder,
+  onSubGoalAdd,
+  onSubGoalToggle,
 }: GoalsPanelProps) {
   const handleAdd = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -149,6 +160,8 @@ export default function GoalsPanel({
             onMove={onReorder ? handleMove : undefined}
             isFirst={idx === 0}
             isLast={idx === orderedGoals.length - 1}
+            onSubGoalAdd={onSubGoalAdd}
+            onSubGoalToggle={onSubGoalToggle}
           />
         ))}
         {orderedGoals.length === 0 && (
@@ -167,6 +180,8 @@ function GoalRow({
   onMove,
   isFirst,
   isLast,
+  onSubGoalAdd,
+  onSubGoalToggle,
 }: {
   goal: Goal;
   categories: { id: string; name: string; color: string }[];
@@ -175,6 +190,8 @@ function GoalRow({
   onMove?: (id: string, direction: "up" | "down") => void;
   isFirst: boolean;
   isLast: boolean;
+  onSubGoalAdd?: (goalId: string, title: string) => void;
+  onSubGoalToggle?: (goalId: string, subGoalId: string, done: boolean) => void;
 }) {
   const [editing, setEditing] = React.useState(false);
   const [title, setTitle] = React.useState(goal.title);
@@ -184,6 +201,8 @@ function GoalRow({
   const [startDate, setStartDate] = React.useState(goal.startDate ?? "");
   const [endDate, setEndDate] = React.useState(goal.endDate ?? "");
   const [categoryId, setCategoryId] = React.useState(goal.categoryId || "");
+  const [newSubGoalTitle, setNewSubGoalTitle] = React.useState("");
+  const [showArchive, setShowArchive] = React.useState(false);
   const category = categories.find((c) => c.id === goal.categoryId) || null;
   const accentColor = category?.color || goal.color || "#2fa38a";
   const tintedAccent = `${accentColor}22`;
@@ -207,6 +226,9 @@ function GoalRow({
       : endDate
         ? `〜 ${endDate}`
         : null;
+  const subGoals = goal.subGoals ?? [];
+  const activeSubGoals = subGoals.filter((sg) => !sg.completedAt);
+  const archivedSubGoals = subGoals.filter((sg) => sg.completedAt);
 
   React.useEffect(() => {
     setTitle(goal.title);
@@ -214,6 +236,8 @@ function GoalRow({
     setStartDate(goal.startDate ?? "");
     setEndDate(goal.endDate ?? "");
     setCategoryId(goal.categoryId || "");
+    setShowArchive(false);
+    setNewSubGoalTitle("");
   }, [goal]);
 
   return (
@@ -289,6 +313,101 @@ function GoalRow({
               削除
             </button>
           </div>
+          {(onSubGoalAdd || subGoals.length > 0) && (
+            <div className="mt-4 space-y-3">
+              <div className="rounded-2xl border border-white/70 bg-white/60 p-3 shadow-sm">
+                <div className="flex items-center justify-between text-xs font-semibold text-ink/70 mb-2">
+                  <span>ミニ目標</span>
+                  <span>{activeSubGoals.length} 件</span>
+                </div>
+                {activeSubGoals.length > 0 ? (
+                  <ul className="space-y-2">
+                    {activeSubGoals.map((sg) => (
+                      <li key={sg.id} className="flex items-center gap-3">
+                        <input
+                          type="checkbox"
+                          className="w-4 h-4 rounded border-border text-charcoal"
+                          checked={Boolean(sg.completedAt)}
+                          disabled={!onSubGoalToggle}
+                          onChange={() => onSubGoalToggle?.(goal.id, sg.id, true)}
+                        />
+                        <span className="text-sm font-medium text-ink">
+                          {sg.title}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="text-xs text-ink/50">未達成のミニ目標はありません。</p>
+                )}
+                {onSubGoalAdd && (
+                  <form
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      if (!newSubGoalTitle.trim()) return;
+                      onSubGoalAdd(goal.id, newSubGoalTitle.trim());
+                      setNewSubGoalTitle("");
+                    }}
+                    className="mt-3 flex items-center gap-2"
+                  >
+                    <input
+                      className="flex-1 px-3 py-2 rounded-xl border border-border text-sm bg-white focus:border-charcoal"
+                      placeholder="新しいミニ目標"
+                      value={newSubGoalTitle}
+                      onChange={(e) => setNewSubGoalTitle(e.target.value)}
+                    />
+                    <button
+                      type="submit"
+                      className="px-3 py-2 rounded-xl bg-charcoal text-white text-xs font-semibold hover:bg-ink"
+                    >
+                      追加
+                    </button>
+                  </form>
+                )}
+              </div>
+              {archivedSubGoals.length > 0 && (
+                <div className="rounded-2xl border border-white/60 bg-white/40 p-3">
+                  <button
+                    type="button"
+                    className="w-full flex items-center justify-between text-xs font-semibold text-ink/60 hover:text-ink"
+                    onClick={() => setShowArchive((v) => !v)}
+                  >
+                    <span>保管済みミニ目標</span>
+                    <span>
+                      {archivedSubGoals.length} 件{" "}
+                      {showArchive ? "▲" : "▼"}
+                    </span>
+                  </button>
+                  {showArchive && (
+                    <ul className="mt-3 space-y-2 text-xs text-ink/60">
+                      {archivedSubGoals.map((sg) => (
+                        <li
+                          key={sg.id}
+                          className="flex items-center gap-2 border border-dashed border-border/60 rounded-lg px-2 py-1"
+                        >
+                          <input
+                            type="checkbox"
+                            className="w-4 h-4 rounded border-border text-charcoal"
+                            checked
+                            disabled={!onSubGoalToggle}
+                            onChange={() =>
+                              onSubGoalToggle?.(goal.id, sg.id, false)
+                            }
+                          />
+                          <span className="line-through">{sg.title}</span>
+                          {sg.completedAt && (
+                            <span className="ml-auto text-[10px]">
+                              {new Date(sg.completedAt).toLocaleDateString("ja-JP")}
+                            </span>
+                          )}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
         </div>
       ) : (
         <div className="relative z-10 space-y-3 text-sm text-gray-700">

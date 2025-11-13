@@ -40,6 +40,13 @@ const goalOrderValue = (goal: { order?: number }) =>
 const sortGoalsByOrder = <T extends { order?: number }>(list: T[]) =>
   [...list].sort((a, b) => goalOrderValue(a) - goalOrderValue(b));
 
+const generateSubGoalId = () => {
+  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
+    return crypto.randomUUID();
+  }
+  return `subgoal-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+};
+
 export default function Home() {
   type UITask = {
     id: string;
@@ -48,6 +55,11 @@ export default function Home() {
     estimateMinutes?: number;
     order?: number;
     timingNote?: string;
+  };
+  type UISubGoal = {
+    id: string;
+    title: string;
+    completedAt?: number;
   };
   type UIGoal = {
     id: string;
@@ -58,6 +70,7 @@ export default function Home() {
     startDate?: string;
     endDate?: string;
     order?: number;
+    subGoals: UISubGoal[];
   };
   const [currentDate, setCurrentDate] = useState(DateTime.now());
   const [planId, setPlanId] = useState<string | null>(null);
@@ -371,6 +384,13 @@ export default function Home() {
               startDate: g.startDate,
               endDate: g.endDate,
               order: typeof g.order === "number" ? g.order : undefined,
+              subGoals: Array.isArray(g.subGoals)
+                ? g.subGoals.map((sg) => ({
+                    id: sg.id,
+                    title: sg.title,
+                    completedAt: sg.completedAt,
+                  }))
+                : [],
             })),
           ),
         );
@@ -614,6 +634,13 @@ export default function Home() {
         startDate: goal.startDate,
         endDate: goal.endDate,
         order: typeof goal.order === "number" ? goal.order : nextOrder,
+        subGoals: Array.isArray(goal.subGoals)
+          ? goal.subGoals.map((sg) => ({
+              id: sg.id,
+              title: sg.title,
+              completedAt: sg.completedAt,
+            }))
+          : [],
       };
       setGoals((prev) => sortGoalsByOrder([...prev, normalized]));
     } catch (err: unknown) {
@@ -659,6 +686,59 @@ export default function Home() {
       setGoals(before);
       const e = err as { message?: string; status?: number };
       setMessage(resolveMessage(e, "目標の並び替えに失敗しました"));
+    }
+  };
+
+  const handleSubGoalAdd = async (goalId: string, title: string) => {
+    const trimmed = title.trim();
+    if (!trimmed) return;
+    const before = goals;
+    const target = before.find((g) => g.id === goalId);
+    if (!target) return;
+    const newSubGoal = { id: generateSubGoalId(), title: trimmed };
+    const updatedGoal = {
+      ...target,
+      subGoals: [...(target.subGoals ?? []), newSubGoal],
+    };
+    const optimistic = before.map((g) =>
+      g.id === goalId ? updatedGoal : g,
+    );
+    setGoals(optimistic);
+    try {
+      await apiUpdateGoal(goalId, { subGoals: updatedGoal.subGoals });
+    } catch (err: unknown) {
+      setGoals(before);
+      const e = err as { message?: string; status?: number };
+      setMessage(resolveMessage(e, "ミニ目標の追加に失敗しました"));
+    }
+  };
+
+  const handleSubGoalToggle = async (
+    goalId: string,
+    subGoalId: string,
+    done: boolean,
+  ) => {
+    const before = goals;
+    const target = before.find((g) => g.id === goalId);
+    if (!target) return;
+    const updatedGoal = {
+      ...target,
+      subGoals: (target.subGoals ?? []).map((sg) =>
+        sg.id === subGoalId
+          ? { ...sg, completedAt: done ? Date.now() : undefined }
+          : sg,
+      ),
+    };
+    const optimistic = before.map((g) =>
+      g.id === goalId ? updatedGoal : g,
+    );
+    setGoals(optimistic);
+    try {
+      await apiUpdateGoal(goalId, { subGoals: updatedGoal.subGoals });
+    } catch (err: unknown) {
+      setGoals(before);
+      const e = err as { message?: string; status?: number };
+      setMessage(resolveMessage(e, "ミニ目標の更新に失敗しました"));
     }
   };
 
@@ -842,6 +922,8 @@ export default function Home() {
               }
             }}
             onReorder={handleGoalReorder}
+            onSubGoalAdd={handleSubGoalAdd}
+            onSubGoalToggle={handleSubGoalToggle}
             onCategoryAdd={async (name, color) => {
               try {
                 const { category } = await apiCreateCategory({ name, color });
