@@ -8,6 +8,7 @@ import Timeline from "@/components/Timeline";
 import {
   initAuthListener,
   signInWithGoogle,
+  signOutUser,
   getCurrentUser,
   getAuthDebugInfo,
 } from "@/lib/firebaseClient";
@@ -623,9 +624,17 @@ export default function Home() {
             </div>
             <div className="ml-auto flex items-center gap-2 sm:gap-3">
               {userEmail ? (
-                <span className="px-3 py-1 rounded-full bg-mint-lighter text-mint-green text-xs sm:text-sm font-semibold">
-                  ログイン中
-                </span>
+                <>
+                  <span className="hidden sm:inline text-xs text-gray-500">
+                    {userEmail}
+                  </span>
+                  <button
+                    onClick={() => signOutUser()}
+                    className="px-3 py-1.5 rounded-lg border border-border text-xs sm:text-sm hover:bg-gray-50 font-medium transition-all duration-200"
+                  >
+                    ログアウト
+                  </button>
+                </>
               ) : (
                 <button
                   onClick={() => signInWithGoogle()}
