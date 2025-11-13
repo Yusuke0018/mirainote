@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { DateTime } from "luxon";
 import DateNavigation from "@/components/DateNavigation";
 import TaskList from "@/components/TaskList";
@@ -71,6 +71,13 @@ export default function Home() {
   >([]);
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const showTimeline = false;
+  type CachedSnapshot = {
+    planId: string;
+    tasks: UITask[];
+    blocks: typeof blocks;
+    intermissions: typeof intermissions;
+  };
+  const planCache = useRef<Map<string, CachedSnapshot>>(new Map());
 
   const ymd = useMemo(() => currentDate.toFormat("yyyy-LL-dd"), [currentDate]);
   const todayDate = DateTime.now().startOf("day");
@@ -177,63 +184,53 @@ export default function Home() {
   const fetchPlan = async (dateStr: string) => {
     setLoading(true);
     setMessage(null);
+    const cached = planCache.current.get(dateStr);
+    if (cached) {
+      applySnapshot(cached);
+    }
     try {
       const bundle = await getPlan(dateStr).catch(async (e: unknown) => {
         const err = e as { status?: number };
         if (err?.status === 404) return await ensurePlan(dateStr);
         throw e;
       });
-      setPlanId(bundle.plan.id);
-      setTasks(
-        bundle.tasks.map((t) => ({
-          id: t.id,
-          title: t.title,
-          state: t.state as UITask["state"],
-          estimateMinutes: t.estimateMinutes,
-          order: (t as unknown as { order?: number }).order,
-          timingNote: (t as unknown as { timingNote?: string }).timingNote,
-        })),
-      );
-      const [gl, cat] = await Promise.all([listGoals(), listCategories()]);
-      setGoals(
-        gl.goals.map((g) => ({
-          id: g.id,
-          title: g.title,
-          color: g.color,
-          categoryId: g.categoryId,
-          period: g.period,
-          startDate: g.startDate,
-          endDate: g.endDate,
-        })),
-      );
-      setCategories(
-        cat.categories.map((c) => ({ id: c.id, name: c.name, color: c.color })),
-      );
+      const mappedTasks = bundle.tasks.map((t) => ({
+        id: t.id,
+        title: t.title,
+        state: t.state as UITask["state"],
+        estimateMinutes: t.estimateMinutes,
+        order: (t as unknown as { order?: number }).order,
+        timingNote: (t as unknown as { timingNote?: string }).timingNote,
+      }));
+      let mappedBlocks: typeof blocks = [];
+      let mappedIntermissions: typeof intermissions = [];
       if (showTimeline) {
-        let nextBlocks = bundle.blocks.map((b) => ({
+        mappedBlocks = bundle.blocks.map((b) => ({
           id: b.id,
           title: b.title,
           start: b.start,
           end: b.end,
           taskId: b.taskId,
         }));
-        setIntermissions(
-          bundle.intermissions.map((i) => ({
-            id: i.id,
-            start: i.start,
-            end: i.end,
-          })),
-        );
-        nextBlocks = await ensureBlocksForTasks(
+        mappedIntermissions = bundle.intermissions.map((i) => ({
+          id: i.id,
+          start: i.start,
+          end: i.end,
+        }));
+        mappedBlocks = await ensureBlocksForTasks(
           bundle.plan.id,
           bundle.tasks,
-          nextBlocks,
+          mappedBlocks,
         );
-        setBlocks(nextBlocks);
-      } else {
-        setBlocks([]);
-        setIntermissions([]);
       }
+      const snapshot: CachedSnapshot = {
+        planId: bundle.plan.id,
+        tasks: mappedTasks,
+        blocks: mappedBlocks,
+        intermissions: mappedIntermissions,
+      };
+      planCache.current.set(dateStr, snapshot);
+      applySnapshot(snapshot);
     } catch (err: unknown) {
       const e = err as { message?: string };
       setMessage(e?.message || "読み込みに失敗しました");
@@ -241,6 +238,18 @@ export default function Home() {
       setLoading(false);
     }
   };
+
+  const applySnapshot = useCallback(
+    (snapshot: CachedSnapshot) => {
+      setPlanId(snapshot.planId);
+      setTasks(snapshot.tasks);
+      if (showTimeline) {
+        setBlocks(snapshot.blocks);
+        setIntermissions(snapshot.intermissions);
+      }
+    },
+    [showTimeline],
+  );
 
   useEffect(() => {
     // Auth state polling (簡易): 1秒ごとにEmailを反映
@@ -250,6 +259,36 @@ export default function Home() {
       setUserEmail(u?.email ?? null);
     }, 1000);
     return () => clearInterval(t);
+  }, []);
+
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const [gl, cat] = await Promise.all([listGoals(), listCategories()]);
+        if (!mounted) return;
+        setGoals(
+          gl.goals.map((g) => ({
+            id: g.id,
+            title: g.title,
+            color: g.color,
+            categoryId: g.categoryId,
+            period: g.period,
+            startDate: g.startDate,
+            endDate: g.endDate,
+          })),
+        );
+        setCategories(
+          cat.categories.map((c) => ({ id: c.id, name: c.name, color: c.color })),
+        );
+      } catch (err: unknown) {
+        const e = err as { message?: string };
+        setMessage(e?.message || "マスターデータの取得に失敗しました");
+      }
+    })();
+    return () => {
+      mounted = false;
+    };
   }, []);
 
   useEffect(() => {
