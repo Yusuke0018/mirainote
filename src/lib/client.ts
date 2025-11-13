@@ -10,7 +10,6 @@ import {
   Checkin as CheckinT,
   Goal as GoalT,
   CreateGoalInput,
-  UpdateGoalInput,
   Category as CategoryT,
   CreateCategoryInput,
   UpdateCategoryInput,
@@ -178,6 +177,8 @@ export async function updateGoal(
     startDate?: string;
     endDate?: string;
     color?: string;
+    order?: number;
+    categoryId?: string;
   },
 ) {
   return api<{ goal: WithId<GoalT> }>(`/api/goals/${id}`, {

@@ -9,6 +9,7 @@ interface Goal {
   period?: "year" | "quarter" | "month" | "custom";
   startDate?: string;
   endDate?: string;
+  order?: number;
 }
 
 interface GoalsPanelProps {
@@ -25,6 +26,7 @@ interface GoalsPanelProps {
       endDate?: string;
       color?: string;
       categoryId?: string;
+      order?: number;
     },
   ) => void;
   onCategoryAdd?: (name: string, color?: string) => void;
@@ -33,6 +35,7 @@ interface GoalsPanelProps {
     patch: { name?: string; color?: string; order?: number },
   ) => void;
   onCategoryDelete?: (id: string) => void;
+  onReorder?: (orderedIds: string[]) => void;
 }
 
 const COLOR_PRESETS = [
@@ -52,6 +55,7 @@ export default function GoalsPanel({
   onCategoryAdd,
   onCategoryUpdate,
   onCategoryDelete,
+  onReorder,
 }: GoalsPanelProps) {
   const handleAdd = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -64,6 +68,33 @@ export default function GoalsPanel({
       form.reset();
     }
   };
+
+  const orderedGoals = React.useMemo(() => {
+    return [...goals].sort((a, b) => {
+      const orderA =
+        typeof a.order === "number" ? a.order : Number.MAX_SAFE_INTEGER;
+      const orderB =
+        typeof b.order === "number" ? b.order : Number.MAX_SAFE_INTEGER;
+      if (orderA !== orderB) return orderA - orderB;
+      return a.title.localeCompare(b.title);
+    });
+  }, [goals]);
+
+  const handleMove = React.useCallback(
+    (goalId: string, direction: "up" | "down") => {
+      if (!onReorder) return;
+      const currentIndex = orderedGoals.findIndex((g) => g.id === goalId);
+      if (currentIndex < 0) return;
+      const next = [...orderedGoals];
+      const [moved] = next.splice(currentIndex, 1);
+      const targetIndex =
+        direction === "up" ? currentIndex - 1 : currentIndex + 1;
+      if (targetIndex < 0 || targetIndex > next.length) return;
+      next.splice(targetIndex, 0, moved);
+      onReorder(next.map((g) => g.id));
+    },
+    [onReorder, orderedGoals],
+  );
 
   return (
     <div className="bg-white/95 backdrop-blur rounded-2xl shadow-md border border-border p-4 sm:p-6 mobile-card">
@@ -108,16 +139,19 @@ export default function GoalsPanel({
         onDelete={onCategoryDelete}
       />
       <div className="space-y-2">
-        {goals.map((g) => (
+        {orderedGoals.map((g, idx) => (
           <GoalRow
             key={g.id}
             goal={g}
             categories={categories}
             onDelete={onDelete}
             onUpdate={onUpdate}
+            onMove={onReorder ? handleMove : undefined}
+            isFirst={idx === 0}
+            isLast={idx === orderedGoals.length - 1}
           />
         ))}
-        {goals.length === 0 && (
+        {orderedGoals.length === 0 && (
           <div className="text-sm text-gray-500">まだ目標がありません</div>
         )}
       </div>
@@ -130,11 +164,17 @@ function GoalRow({
   categories,
   onDelete,
   onUpdate,
+  onMove,
+  isFirst,
+  isLast,
 }: {
   goal: Goal;
   categories: { id: string; name: string; color: string }[];
   onDelete: (id: string) => void;
   onUpdate?: GoalsPanelProps["onUpdate"];
+  onMove?: (id: string, direction: "up" | "down") => void;
+  isFirst: boolean;
+  isLast: boolean;
 }) {
   const [editing, setEditing] = React.useState(false);
   const [title, setTitle] = React.useState(goal.title);
@@ -145,6 +185,28 @@ function GoalRow({
   const [endDate, setEndDate] = React.useState(goal.endDate ?? "");
   const [categoryId, setCategoryId] = React.useState(goal.categoryId || "");
   const category = categories.find((c) => c.id === goal.categoryId) || null;
+  const accentColor = category?.color || goal.color || "#2fa38a";
+  const tintedAccent = `${accentColor}22`;
+  const cardStyle = {
+    background: `linear-gradient(130deg, ${tintedAccent} 0%, #ffffff 65%)`,
+  };
+  const readablePeriodMap: Record<
+    "year" | "quarter" | "month" | "custom",
+    string
+  > = {
+    year: "年次目標",
+    quarter: "四半期目標",
+    month: "月次目標",
+    custom: "カスタム期間",
+  };
+  const readablePeriod = readablePeriodMap[period];
+  const dateRange = startDate && endDate
+    ? `${startDate} 〜 ${endDate}`
+    : startDate
+      ? `${startDate} 〜`
+      : endDate
+        ? `〜 ${endDate}`
+        : null;
 
   React.useEffect(() => {
     setTitle(goal.title);
@@ -155,27 +217,66 @@ function GoalRow({
   }, [goal]);
 
   return (
-    <div className="p-3 rounded-xl border-2 border-border bg-gradient-to-br from-white to-pastel-mist">
+    <div
+      className="relative overflow-hidden rounded-2xl border-2 border-border shadow-lg px-5 py-4 sm:py-5 sm:px-6"
+      style={cardStyle}
+    >
+      <div
+        className="absolute inset-y-0 left-0 w-1.5 rounded-r-full"
+        style={{ backgroundColor: accentColor }}
+        aria-hidden
+      />
       {!editing ? (
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div
-              className="w-2 h-2 rounded-full"
-              style={{
-                backgroundColor: category?.color || goal.color || "#2fa38a",
-              }}
-            />
-            <span className="font-semibold text-ink">{goal.title}</span>
-            {category && (
-              <span className="ml-2 text-xs px-2 py-0.5 rounded bg-gray-100 border border-border text-gray-600">
-                {category.name}
-              </span>
-            )}
+        <div className="relative z-10 flex flex-col gap-4 text-ink">
+          <div className="flex flex-col gap-2">
+            <span className="text-[11px] uppercase tracking-[0.35em] text-ink/50">
+              GOAL
+            </span>
+            <div className="flex flex-wrap items-center gap-3">
+              <p className="text-2xl sm:text-3xl font-black tracking-tight leading-tight">
+                {goal.title}
+              </p>
+              {category && (
+                <span
+                  className="px-3 py-1 rounded-full text-xs font-semibold border border-white/80"
+                  style={{
+                    backgroundColor: `${accentColor}30`,
+                    color: "#0f172a",
+                  }}
+                >
+                  {category.name}
+                </span>
+              )}
+            </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap gap-4 text-sm text-ink/70">
+            <span className="font-semibold">{readablePeriod}</span>
+            {dateRange && <span>{dateRange}</span>}
+          </div>
+          <div className="flex flex-wrap items-center gap-3 text-sm font-semibold">
+            {onMove && (
+              <div className="flex items-center gap-1 text-xs font-medium text-ink/70">
+                <button
+                  type="button"
+                  disabled={isFirst}
+                  className="px-2 py-1 rounded-full border border-border disabled:opacity-40 hover:bg-white/70 transition-colors"
+                  onClick={() => onMove(goal.id, "up")}
+                >
+                  上へ
+                </button>
+                <button
+                  type="button"
+                  disabled={isLast}
+                  className="px-2 py-1 rounded-full border border-border disabled:opacity-40 hover:bg-white/70 transition-colors"
+                  onClick={() => onMove(goal.id, "down")}
+                >
+                  下へ
+                </button>
+              </div>
+            )}
             {onUpdate && (
               <button
-                className="text-sm text-ink hover:underline"
+                className="text-ink hover:text-ink/70 transition-colors"
                 onClick={() => setEditing(true)}
               >
                 編集
@@ -183,68 +284,72 @@ function GoalRow({
             )}
             <button
               onClick={() => onDelete(goal.id)}
-              className="text-error text-sm hover:underline"
+              className="text-error hover:text-error/80 transition-colors"
             >
               削除
             </button>
           </div>
         </div>
       ) : (
-        <div className="space-y-2">
-          <div className="flex items-center gap-2 flex-wrap">
+        <div className="relative z-10 space-y-3 text-sm text-gray-700">
+          <div className="flex flex-col gap-2">
             <input
-              className="px-2 py-1 border border-border rounded text-sm text-gray-700 focus:border-charcoal"
+              className="w-full px-3 py-2 border-2 border-border rounded-xl text-base font-semibold focus:border-charcoal focus:bg-white/80 outline-none"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
             />
-            <select
-              className="px-2 py-1 border border-border rounded text-sm text-gray-700 focus:border-charcoal"
-              value={categoryId}
-              onChange={(e) => setCategoryId(e.target.value)}
-            >
-              <option value="">カテゴリー未設定</option>
-              {categories.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
-            <select
-              className="px-2 py-1 border border-border rounded text-sm text-gray-700 focus:border-charcoal"
-              value={period}
-              onChange={(e) =>
-                setPeriod(
-                  e.target.value as "year" | "quarter" | "month" | "custom",
-                )
-              }
-            >
-              <option value="year">年</option>
-              <option value="quarter">四半期</option>
-              <option value="month">月</option>
-              <option value="custom">カスタム</option>
-            </select>
+            <div className="flex flex-wrap gap-2">
+              <select
+                className="px-3 py-2 border-2 border-border rounded-xl text-sm text-gray-700 focus:border-charcoal"
+                value={categoryId}
+                onChange={(e) => setCategoryId(e.target.value)}
+              >
+                <option value="">カテゴリー未設定</option>
+                {categories.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+              <select
+                className="px-3 py-2 border-2 border-border rounded-xl text-sm text-gray-700 focus:border-charcoal"
+                value={period}
+                onChange={(e) =>
+                  setPeriod(
+                    e.target.value as "year" | "quarter" | "month" | "custom",
+                  )
+                }
+              >
+                <option value="year">年</option>
+                <option value="quarter">四半期</option>
+                <option value="month">月</option>
+                <option value="custom">カスタム</option>
+              </select>
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-2">
             <input
               type="date"
-              className="px-2 py-1 border border-border rounded text-sm text-gray-700 focus:border-charcoal"
+              className="px-3 py-2 border-2 border-border rounded-xl text-sm text-gray-700 focus:border-charcoal flex-1 min-w-[160px]"
               value={startDate}
               onChange={(e) => setStartDate(e.target.value)}
             />
             <input
               type="date"
-              className="px-2 py-1 border border-border rounded text-sm text-gray-700 focus:border-charcoal"
+              className="px-3 py-2 border-2 border-border rounded-xl text-sm text-gray-700 focus:border-charcoal flex-1 min-w-[160px]"
               value={endDate}
               onChange={(e) => setEndDate(e.target.value)}
             />
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-3">
             <button
-              className="px-3 py-1 rounded border border-border text-sm text-gray-600 hover:bg-gray-50"
+              className="px-4 py-2 rounded-xl border border-border text-sm text-gray-600 hover:bg-white/70"
               onClick={() => setEditing(false)}
             >
               キャンセル
             </button>
             <button
-              className="px-3 py-1 rounded bg-charcoal text-white hover:bg-ink text-sm shadow-sm"
+              className="px-4 py-2 rounded-xl bg-charcoal text-white hover:bg-ink text-sm shadow-sm"
               onClick={() => {
                 const payload: {
                   title?: string;

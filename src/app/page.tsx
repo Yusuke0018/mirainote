@@ -25,6 +25,7 @@ import {
   deleteBlock as apiDeleteBlock,
   listGoals,
   createGoal,
+  updateGoal as apiUpdateGoal,
   deleteGoal,
   listCategories,
   createCategory as apiCreateCategory,
@@ -32,6 +33,12 @@ import {
   deleteCategory as apiDeleteCategory,
 } from "@/lib/client";
 import GoalsPanel from "@/components/GoalsPanel";
+
+const goalOrderValue = (goal: { order?: number }) =>
+  typeof goal.order === "number" ? goal.order : Number.MAX_SAFE_INTEGER;
+
+const sortGoalsByOrder = <T extends { order?: number }>(list: T[]) =>
+  [...list].sort((a, b) => goalOrderValue(a) - goalOrderValue(b));
 
 export default function Home() {
   type UITask = {
@@ -41,6 +48,16 @@ export default function Home() {
     estimateMinutes?: number;
     order?: number;
     timingNote?: string;
+  };
+  type UIGoal = {
+    id: string;
+    title: string;
+    color?: string;
+    categoryId?: string;
+    period?: "year" | "quarter" | "month" | "custom";
+    startDate?: string;
+    endDate?: string;
+    order?: number;
   };
   const [currentDate, setCurrentDate] = useState(DateTime.now());
   const [planId, setPlanId] = useState<string | null>(null);
@@ -59,17 +76,7 @@ export default function Home() {
   >([]);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
-  const [goals, setGoals] = useState<
-    {
-      id: string;
-      title: string;
-      color?: string;
-      categoryId?: string;
-      period?: "year" | "quarter" | "month" | "custom";
-      startDate?: string;
-      endDate?: string;
-    }[]
-  >([]);
+  const [goals, setGoals] = useState<UIGoal[]>([]);
   const [categories, setCategories] = useState<
     { id: string; name: string; color: string }[]
   >([]);
@@ -354,15 +361,18 @@ export default function Home() {
         const [gl, cat] = await Promise.all([listGoals(), listCategories()]);
         if (!mounted) return;
         setGoals(
-          gl.goals.map((g) => ({
-            id: g.id,
-            title: g.title,
-            color: g.color,
-            categoryId: g.categoryId,
-            period: g.period,
-            startDate: g.startDate,
-            endDate: g.endDate,
-          })),
+          sortGoalsByOrder(
+            gl.goals.map((g) => ({
+              id: g.id,
+              title: g.title,
+              color: g.color,
+              categoryId: g.categoryId,
+              period: g.period,
+              startDate: g.startDate,
+              endDate: g.endDate,
+              order: typeof g.order === "number" ? g.order : undefined,
+            })),
+          ),
         );
         setCategories(
           cat.categories.map((c) => ({ id: c.id, name: c.name, color: c.color })),
@@ -588,19 +598,24 @@ export default function Home() {
 
   const handleGoalAdd = async (title: string, categoryId?: string) => {
     try {
-      const { goal } = await createGoal({ title, categoryId });
-      setGoals((prev) => [
-        {
-          id: goal.id,
-          title: goal.title,
-          color: goal.color,
-          categoryId: goal.categoryId,
-          period: goal.period,
-          startDate: goal.startDate,
-          endDate: goal.endDate,
-        },
-        ...prev,
-      ]);
+      const maxOrder = goals.reduce(
+        (max, goal) =>
+          typeof goal.order === "number" ? Math.max(max, goal.order) : max,
+        -1,
+      );
+      const nextOrder = maxOrder + 1;
+      const { goal } = await createGoal({ title, categoryId, order: nextOrder });
+      const normalized: UIGoal = {
+        id: goal.id,
+        title: goal.title,
+        color: goal.color,
+        categoryId: goal.categoryId,
+        period: goal.period,
+        startDate: goal.startDate,
+        endDate: goal.endDate,
+        order: typeof goal.order === "number" ? goal.order : nextOrder,
+      };
+      setGoals((prev) => sortGoalsByOrder([...prev, normalized]));
     } catch (err: unknown) {
       const e = err as { message?: string; status?: number };
       setMessage(resolveMessage(e, "目標の追加に失敗しました"));
@@ -616,6 +631,34 @@ export default function Home() {
       const e = err as { message?: string; status?: number };
       setGoals(before);
       setMessage(resolveMessage(e, "目標の削除に失敗しました"));
+    }
+  };
+
+  const handleGoalReorder = async (orderedIds: string[]) => {
+    const goalMap = new Map(goals.map((g) => [g.id, g]));
+    const seen = new Set(orderedIds);
+    const nextOrder = orderedIds
+      .map((id) => goalMap.get(id))
+      .filter((g): g is UIGoal => Boolean(g));
+    const remainder = goals.filter((g) => !seen.has(g.id));
+    const merged = [...nextOrder, ...remainder];
+    if (merged.length === 0) return;
+    const before = goals;
+    const normalized = merged.map((goal, index) => ({
+      ...goal,
+      order: index,
+    }));
+    setGoals(normalized);
+    try {
+      await Promise.all(
+        normalized.map((goal) =>
+          apiUpdateGoal(goal.id, { order: goal.order }),
+        ),
+      );
+    } catch (err: unknown) {
+      setGoals(before);
+      const e = err as { message?: string; status?: number };
+      setMessage(resolveMessage(e, "目標の並び替えに失敗しました"));
     }
   };
 
@@ -768,7 +811,6 @@ export default function Home() {
               },
             ) => {
               try {
-                const { updateGoal } = await import("@/lib/client");
                 const pp = patch as {
                   title?: string;
                   period?: "year" | "quarter" | "month" | "custom";
@@ -777,7 +819,7 @@ export default function Home() {
                   color?: string;
                   categoryId?: string;
                 };
-                await updateGoal(id, pp);
+                await apiUpdateGoal(id, pp);
                 // 極力局所更新
                 setGoals((prev) =>
                   prev.map((g) =>
@@ -799,6 +841,7 @@ export default function Home() {
                 setMessage(resolveMessage(e, "目標の更新に失敗しました"));
               }
             }}
+            onReorder={handleGoalReorder}
             onCategoryAdd={async (name, color) => {
               try {
                 const { category } = await apiCreateCategory({ name, color });
