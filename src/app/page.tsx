@@ -340,6 +340,7 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
+    if (!isAuthReady) return;
     let mounted = true;
     (async () => {
       // 認証準備完了まで待機（最大3秒）
@@ -374,7 +375,7 @@ export default function Home() {
     return () => {
       mounted = false;
     };
-  }, [resolveMessage, authDebug.hasToken, authDebug.hasUser]);
+  }, [resolveMessage, isAuthReady, authDebug.hasToken, authDebug.hasUser]);
 
   useEffect(() => {
     if (!isAuthReady) {
