@@ -68,6 +68,26 @@ export default function GoalsPanel({
   onSubGoalAdd,
   onSubGoalToggle,
 }: GoalsPanelProps) {
+  const totalSubGoals = React.useMemo(
+    () =>
+      goals.reduce((sum, goal) => sum + (goal.subGoals?.length ?? 0), 0),
+    [goals],
+  );
+  const completedSubGoals = React.useMemo(
+    () =>
+      goals.reduce(
+        (sum, goal) =>
+          sum +
+          (goal.subGoals?.filter((sg) => Boolean(sg.completedAt)).length ?? 0),
+        0,
+      ),
+    [goals],
+  );
+  const completionRate =
+    totalSubGoals > 0
+      ? Math.round((completedSubGoals / totalSubGoals) * 100)
+      : 0;
+
   const handleAdd = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const form = e.currentTarget;
@@ -109,11 +129,26 @@ export default function GoalsPanel({
 
   return (
     <div className="bg-white/95 backdrop-blur rounded-2xl shadow-md border border-border p-4 sm:p-6 mobile-card">
-      <div className="flex items-center gap-3 mb-6">
-        <div className="w-1 h-8 rounded-full bg-gradient-to-b from-ink via-charcoal to-graphite"></div>
-        <h2 className="text-2xl font-bold text-ink tracking-tight">目標</h2>
-        <div className="ml-auto px-3 py-1 rounded-full bg-charcoal text-white text-sm font-medium shadow-sm">
-          {goals.length} 件
+      <div className="flex flex-wrap items-center gap-4 mb-6">
+        <div className="flex items-center gap-3">
+          <div className="w-1 h-10 rounded-full bg-gradient-to-b from-ink via-charcoal to-graphite"></div>
+          <div>
+            <p className="text-sm uppercase tracking-[0.3em] text-ink/50">
+              Goals
+            </p>
+            <h2 className="text-3xl font-black text-ink tracking-tight">
+              目標
+            </h2>
+          </div>
+        </div>
+        <div className="ml-auto flex items-center gap-3">
+          <div className="px-3 py-2 rounded-2xl bg-ink text-white text-sm font-semibold shadow">
+            {goals.length} 件
+          </div>
+          <div className="px-4 py-2 rounded-2xl border border-border/80 bg-white text-xs text-ink/70">
+            ミニ目標 {completedSubGoals}/{totalSubGoals} 達成（{completionRate}
+            %）
+          </div>
         </div>
       </div>
       <form onSubmit={handleAdd} className="mb-4">
@@ -202,7 +237,6 @@ function GoalRow({
   const [endDate, setEndDate] = React.useState(goal.endDate ?? "");
   const [categoryId, setCategoryId] = React.useState(goal.categoryId || "");
   const [newSubGoalTitle, setNewSubGoalTitle] = React.useState("");
-  const [showArchive, setShowArchive] = React.useState(false);
   const category = categories.find((c) => c.id === goal.categoryId) || null;
   const accentColor = category?.color || goal.color || "#2fa38a";
   const tintedAccent = `${accentColor}22`;
@@ -228,7 +262,12 @@ function GoalRow({
         : null;
   const subGoals = goal.subGoals ?? [];
   const activeSubGoals = subGoals.filter((sg) => !sg.completedAt);
-  const archivedSubGoals = subGoals.filter((sg) => sg.completedAt);
+  const completedSubGoals = subGoals.filter((sg) => sg.completedAt);
+  const totalSubGoals = subGoals.length;
+  const subGoalProgress =
+    totalSubGoals > 0
+      ? Math.round((completedSubGoals.length / totalSubGoals) * 100)
+      : 0;
 
   React.useEffect(() => {
     setTitle(goal.title);
@@ -236,7 +275,6 @@ function GoalRow({
     setStartDate(goal.startDate ?? "");
     setEndDate(goal.endDate ?? "");
     setCategoryId(goal.categoryId || "");
-    setShowArchive(false);
     setNewSubGoalTitle("");
   }, [goal]);
 
@@ -315,30 +353,46 @@ function GoalRow({
           </div>
           {(onSubGoalAdd || subGoals.length > 0) && (
             <div className="mt-4 space-y-3">
-              <div className="rounded-2xl border border-white/70 bg-white/60 p-3 shadow-sm">
-                <div className="flex items-center justify-between text-xs font-semibold text-ink/70 mb-2">
+              <div className="rounded-2xl border border-white/70 bg-white/70 p-3 shadow-sm">
+                <div className="flex items-center justify-between text-xs font-semibold text-ink/70 mb-3">
                   <span>ミニ目標</span>
-                  <span>{activeSubGoals.length} 件</span>
+                  <div className="flex items-center gap-2 text-[11px] text-ink/60">
+                    <span>
+                      {completedSubGoals.length}/{subGoals.length || 0}
+                    </span>
+                    <div className="relative h-1.5 w-24 rounded-full bg-gray-200 overflow-hidden">
+                      <div
+                        className="absolute inset-y-0 left-0 rounded-full bg-ink transition-all"
+                        style={{ width: `${subGoalProgress}%` }}
+                      />
+                    </div>
+                    <span>{subGoalProgress}%</span>
+                  </div>
                 </div>
                 {activeSubGoals.length > 0 ? (
                   <ul className="space-y-2">
                     {activeSubGoals.map((sg) => (
-                      <li key={sg.id} className="flex items-center gap-3">
+                      <li
+                        key={sg.id}
+                        className="flex items-center gap-3 rounded-xl bg-white px-3 py-2 border border-border/60"
+                      >
                         <input
                           type="checkbox"
                           className="w-4 h-4 rounded border-border text-charcoal"
-                          checked={Boolean(sg.completedAt)}
+                          checked={false}
                           disabled={!onSubGoalToggle}
                           onChange={() => onSubGoalToggle?.(goal.id, sg.id, true)}
                         />
-                        <span className="text-sm font-medium text-ink">
+                        <span className="text-sm font-semibold text-ink">
                           {sg.title}
                         </span>
                       </li>
                     ))}
                   </ul>
                 ) : (
-                  <p className="text-xs text-ink/50">未達成のミニ目標はありません。</p>
+                  <p className="text-xs text-ink/50">
+                    未達成のミニ目標はありません。
+                  </p>
                 )}
                 {onSubGoalAdd && (
                   <form
@@ -365,45 +419,35 @@ function GoalRow({
                   </form>
                 )}
               </div>
-              {archivedSubGoals.length > 0 && (
-                <div className="rounded-2xl border border-white/60 bg-white/40 p-3">
-                  <button
-                    type="button"
-                    className="w-full flex items-center justify-between text-xs font-semibold text-ink/60 hover:text-ink"
-                    onClick={() => setShowArchive((v) => !v)}
-                  >
-                    <span>保管済みミニ目標</span>
-                    <span>
-                      {archivedSubGoals.length} 件{" "}
-                      {showArchive ? "▲" : "▼"}
-                    </span>
-                  </button>
-                  {showArchive && (
-                    <ul className="mt-3 space-y-2 text-xs text-ink/60">
-                      {archivedSubGoals.map((sg) => (
-                        <li
-                          key={sg.id}
-                          className="flex items-center gap-2 border border-dashed border-border/60 rounded-lg px-2 py-1"
-                        >
-                          <input
-                            type="checkbox"
-                            className="w-4 h-4 rounded border-border text-charcoal"
-                            checked
-                            disabled={!onSubGoalToggle}
-                            onChange={() =>
-                              onSubGoalToggle?.(goal.id, sg.id, false)
-                            }
-                          />
-                          <span className="line-through">{sg.title}</span>
-                          {sg.completedAt && (
-                            <span className="ml-auto text-[10px]">
-                              {new Date(sg.completedAt).toLocaleDateString("ja-JP")}
-                            </span>
-                          )}
-                        </li>
-                      ))}
-                    </ul>
-                  )}
+              {completedSubGoals.length > 0 && (
+                <div className="rounded-2xl border border-dashed border-white/60 bg-white/50 p-3">
+                  <p className="text-xs font-semibold text-ink/60 mb-2">
+                    完了済み
+                  </p>
+                  <ul className="space-y-2 text-xs text-ink/60">
+                    {completedSubGoals.map((sg) => (
+                      <li
+                        key={sg.id}
+                        className="flex items-center gap-3 rounded-2xl border border-border/40 px-3 py-2 bg-white/80"
+                      >
+                        <input
+                          type="checkbox"
+                          className="w-4 h-4 rounded border-border text-charcoal"
+                          checked
+                          disabled={!onSubGoalToggle}
+                          onChange={() =>
+                            onSubGoalToggle?.(goal.id, sg.id, false)
+                          }
+                        />
+                        <span className="line-through text-sm">{sg.title}</span>
+                        {sg.completedAt && (
+                          <span className="ml-auto text-[10px] text-ink/40">
+                            {new Date(sg.completedAt).toLocaleDateString("ja-JP")}
+                          </span>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
                 </div>
               )}
             </div>
