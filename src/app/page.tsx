@@ -83,6 +83,12 @@ export default function Home() {
   const [emailInput, setEmailInput] = useState("");
   const [signingIn, setSigningIn] = useState(false);
   const showTimeline = false;
+  const debugUid =
+    typeof window !== "undefined"
+      ? (window as unknown as { NEXT_PUBLIC_DEBUG_UID?: string })
+          .NEXT_PUBLIC_DEBUG_UID || process.env.NEXT_PUBLIC_DEBUG_UID
+      : process.env.NEXT_PUBLIC_DEBUG_UID;
+  const isAuthReady = authDebug.hasToken || Boolean(debugUid);
   type CachedSnapshot = {
     planId: string;
     tasks: UITask[];
@@ -371,9 +377,13 @@ export default function Home() {
   }, [resolveMessage, authDebug.hasToken, authDebug.hasUser]);
 
   useEffect(() => {
+    if (!isAuthReady) {
+      setMessage("メールアドレスを入力してログインしてください");
+      return;
+    }
     fetchPlan(ymd);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ymd]);
+  }, [ymd, isAuthReady]);
 
   const handleDateChange = (date: DateTime) => setCurrentDate(date);
 
