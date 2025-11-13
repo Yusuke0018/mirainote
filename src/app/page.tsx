@@ -9,6 +9,7 @@ import {
   initAuthListener,
   signInWithGoogle,
   getCurrentUser,
+  getAuthDebugInfo,
 } from "@/lib/firebaseClient";
 import {
   ensurePlan,
@@ -70,6 +71,12 @@ export default function Home() {
     { id: string; name: string; color: string }[]
   >([]);
   const [userEmail, setUserEmail] = useState<string | null>(null);
+  const [authDebug, setAuthDebug] = useState({
+    hasUser: false,
+    hasToken: false,
+    email: null as string | null,
+    debugUid: undefined as string | undefined,
+  });
   const showTimeline = false;
   type CachedSnapshot = {
     planId: string;
@@ -181,6 +188,21 @@ export default function Home() {
     [createBlockForTask, showTimeline],
   );
 
+  const getAuthErrorMessage = useCallback(() => {
+    if (!authDebug.hasUser) return "Googleでログインしてください";
+    if (!authDebug.hasToken)
+      return "IDトークンが取得できていません。ページを再読み込みして再ログインしてください";
+    return "サーバーの Firebase 鍵とクライアントの設定が一致していない可能性があります";
+  }, [authDebug]);
+
+  const resolveMessage = useCallback(
+    (err: { status?: number; message?: string }, fallback: string) => {
+      if (err?.status === 401) return getAuthErrorMessage();
+      return err?.message || fallback;
+    },
+    [getAuthErrorMessage],
+  );
+
   const fetchPlan = async (dateStr: string) => {
     setLoading(true);
     setMessage(null);
@@ -232,8 +254,8 @@ export default function Home() {
       planCache.current.set(dateStr, snapshot);
       applySnapshot(snapshot);
     } catch (err: unknown) {
-      const e = err as { message?: string };
-      setMessage(e?.message || "読み込みに失敗しました");
+      const e = err as { message?: string; status?: number };
+      setMessage(resolveMessage(e, "読み込みに失敗しました"));
     } finally {
       setLoading(false);
     }
@@ -263,6 +285,20 @@ export default function Home() {
 
   useEffect(() => {
     let mounted = true;
+    const update = async () => {
+      const info = await getAuthDebugInfo();
+      if (mounted) setAuthDebug(info);
+    };
+    update();
+    const timer = setInterval(update, 4000);
+    return () => {
+      mounted = false;
+      clearInterval(timer);
+    };
+  }, []);
+
+  useEffect(() => {
+    let mounted = true;
     (async () => {
       try {
         const [gl, cat] = await Promise.all([listGoals(), listCategories()]);
@@ -281,15 +317,15 @@ export default function Home() {
         setCategories(
           cat.categories.map((c) => ({ id: c.id, name: c.name, color: c.color })),
         );
-      } catch (err: unknown) {
-        const e = err as { message?: string };
-        setMessage(e?.message || "マスターデータの取得に失敗しました");
+    } catch (err: unknown) {
+      const e = err as { message?: string; status?: number };
+      setMessage(resolveMessage(e, "マスターデータの取得に失敗しました"));
       }
     })();
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [resolveMessage]);
 
   useEffect(() => {
     fetchPlan(ymd);
@@ -335,14 +371,14 @@ export default function Home() {
             estimateMinutes: task.estimateMinutes,
           });
         } catch (err: unknown) {
-          const e = err as { message?: string };
-          setMessage(e?.message || "タイムラインへの反映に失敗しました");
+          const e = err as { message?: string; status?: number };
+          setMessage(resolveMessage(e, "タイムラインへの反映に失敗しました"));
         }
       }
     } catch (err: unknown) {
       setTasks((prev) => prev.filter((t) => t.id !== tempId));
-      const e = err as { message?: string };
-      setMessage(e?.message || "タスク追加に失敗しました");
+      const e = err as { message?: string; status?: number };
+      setMessage(resolveMessage(e, "タスク追加に失敗しました"));
     }
   };
 
@@ -410,8 +446,8 @@ export default function Home() {
     } catch (err: unknown) {
       setTasks(beforeTasks);
       setBlocks(beforeBlocks);
-      const e = err as { message?: string };
-      setMessage(e?.message || "タスク更新に失敗しました");
+      const e = err as { message?: string; status?: number };
+      setMessage(resolveMessage(e, "タスク更新に失敗しました"));
     }
   };
 
@@ -437,9 +473,9 @@ export default function Home() {
     try {
       await apiDeleteBlock(id);
     } catch (err: unknown) {
-      const e = err as { message?: string };
+      const e = err as { message?: string; status?: number };
       setBlocks(before);
-      setMessage(e?.message || "ブロック削除に失敗しました");
+      setMessage(resolveMessage(e, "ブロック削除に失敗しました"));
     }
   };
 
@@ -475,7 +511,7 @@ export default function Home() {
       setBlocks((prev) => prev.filter((b) => b.id !== tempId));
       const e = err as { status?: number; message?: string };
       if (e?.status === 409) setMessage("既存ブロックと重なります");
-      else setMessage(e?.message || "ブロック追加に失敗しました");
+      else setMessage(resolveMessage(e, "ブロック追加に失敗しました"));
     }
   };
 
@@ -492,7 +528,7 @@ export default function Home() {
       const e = err as { status?: number; message?: string };
       setBlocks(before);
       if (e?.status === 409) setMessage("既存ブロックと重なります");
-      else setMessage(e?.message || "ブロック移動に失敗しました");
+      else setMessage(resolveMessage(e, "ブロック移動に失敗しました"));
     }
   };
 
@@ -512,8 +548,8 @@ export default function Home() {
         ...prev,
       ]);
     } catch (err: unknown) {
-      const e = err as { message?: string };
-      setMessage(e?.message || "目標の追加に失敗しました");
+      const e = err as { message?: string; status?: number };
+      setMessage(resolveMessage(e, "目標の追加に失敗しました"));
     }
   };
 
@@ -523,9 +559,9 @@ export default function Home() {
     try {
       await deleteGoal(id);
     } catch (err: unknown) {
-      const e = err as { message?: string };
+      const e = err as { message?: string; status?: number };
       setGoals(before);
-      setMessage(e?.message || "目標の削除に失敗しました");
+      setMessage(resolveMessage(e, "目標の削除に失敗しました"));
     }
   };
 
@@ -549,8 +585,8 @@ export default function Home() {
     } catch (err: unknown) {
       setTasks(beforeTasks);
       setBlocks(beforeBlocks);
-      const e = err as { message?: string };
-      setMessage(e?.message || "タスク削除に失敗しました");
+      const e = err as { message?: string; status?: number };
+      setMessage(resolveMessage(e, "タスク削除に失敗しました"));
     }
   };
 
@@ -651,8 +687,8 @@ export default function Home() {
                   ),
                 );
               } catch (err: unknown) {
-                const e = err as { message?: string };
-                setMessage(e?.message || "目標の更新に失敗しました");
+                const e = err as { message?: string; status?: number };
+                setMessage(resolveMessage(e, "目標の更新に失敗しました"));
               }
             }}
             onCategoryAdd={async (name, color) => {
@@ -667,8 +703,8 @@ export default function Home() {
                   },
                 ]);
               } catch (err: unknown) {
-                const e = err as { message?: string };
-                setMessage(e?.message || "カテゴリーの追加に失敗しました");
+                const e = err as { message?: string; status?: number };
+                setMessage(resolveMessage(e, "カテゴリーの追加に失敗しました"));
               }
             }}
             onCategoryUpdate={async (id, patch) => {
@@ -686,8 +722,8 @@ export default function Home() {
                   ),
                 );
               } catch (err: unknown) {
-                const e = err as { message?: string };
-                setMessage(e?.message || "カテゴリーの更新に失敗しました");
+                const e = err as { message?: string; status?: number };
+                setMessage(resolveMessage(e, "カテゴリーの更新に失敗しました"));
               }
             }}
             onCategoryDelete={async (id) => {
@@ -697,8 +733,8 @@ export default function Home() {
                 await apiDeleteCategory(id);
               } catch (err: unknown) {
                 setCategories(before);
-                const e = err as { message?: string };
-                setMessage(e?.message || "カテゴリーの削除に失敗しました");
+                const e = err as { message?: string; status?: number };
+                setMessage(resolveMessage(e, "カテゴリーの削除に失敗しました"));
               }
             }}
           />

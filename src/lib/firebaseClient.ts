@@ -62,3 +62,19 @@ export async function signOutUser() {
 export function getCurrentUser() {
   return currentUser;
 }
+
+export async function getAuthDebugInfo() {
+  const auth = getAuth(getFirebaseClientApp());
+  const user = auth.currentUser ?? currentUser;
+  let hasToken = false;
+  try {
+    const token = await getIdToken();
+    hasToken = !!token;
+  } catch {}
+  return {
+    hasUser: !!user,
+    email: user?.email ?? null,
+    hasToken,
+    debugUid: process.env.NEXT_PUBLIC_DEBUG_UID,
+  };
+}
