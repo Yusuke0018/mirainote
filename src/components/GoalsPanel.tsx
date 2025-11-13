@@ -146,7 +146,8 @@ export default function GoalsPanel({
             {goals.length} 件
           </div>
           <div className="px-4 py-2 rounded-2xl border border-border/80 bg-white text-xs text-ink/70">
-            ミニ目標 {completedSubGoals}/{totalSubGoals} 達成（{completionRate}
+            マイルストーン {completedSubGoals}/{totalSubGoals} 達成（
+            {completionRate}
             %）
           </div>
         </div>
@@ -236,7 +237,7 @@ function GoalRow({
   const [startDate, setStartDate] = React.useState(goal.startDate ?? "");
   const [endDate, setEndDate] = React.useState(goal.endDate ?? "");
   const [categoryId, setCategoryId] = React.useState(goal.categoryId || "");
-  const [newSubGoalTitle, setNewSubGoalTitle] = React.useState("");
+  const [newMilestoneTitle, setNewMilestoneTitle] = React.useState("");
   const category = categories.find((c) => c.id === goal.categoryId) || null;
   const accentColor = category?.color || goal.color || "#2fa38a";
   const tintedAccent = `${accentColor}22`;
@@ -275,8 +276,17 @@ function GoalRow({
     setStartDate(goal.startDate ?? "");
     setEndDate(goal.endDate ?? "");
     setCategoryId(goal.categoryId || "");
-    setNewSubGoalTitle("");
-  }, [goal]);
+  }, [
+    goal.categoryId,
+    goal.endDate,
+    goal.period,
+    goal.startDate,
+    goal.title,
+  ]);
+
+  React.useEffect(() => {
+    setNewMilestoneTitle("");
+  }, [goal.id]);
 
   return (
     <div
@@ -355,7 +365,7 @@ function GoalRow({
             <div className="mt-4 space-y-3">
               <div className="rounded-2xl border border-white/70 bg-white/70 p-3 shadow-sm">
                 <div className="flex items-center justify-between text-xs font-semibold text-ink/70 mb-3">
-                  <span>ミニ目標</span>
+                  <span>マイルストーン</span>
                   <div className="flex items-center gap-2 text-[11px] text-ink/60">
                     <span>
                       {completedSubGoals.length}/{subGoals.length || 0}
@@ -391,24 +401,24 @@ function GoalRow({
                   </ul>
                 ) : (
                   <p className="text-xs text-ink/50">
-                    未達成のミニ目標はありません。
+                    未達成のマイルストーンはありません。
                   </p>
                 )}
                 {onSubGoalAdd && (
                   <form
                     onSubmit={(e) => {
                       e.preventDefault();
-                      if (!newSubGoalTitle.trim()) return;
-                      onSubGoalAdd(goal.id, newSubGoalTitle.trim());
-                      setNewSubGoalTitle("");
+                      if (!newMilestoneTitle.trim()) return;
+                      onSubGoalAdd(goal.id, newMilestoneTitle.trim());
+                      setNewMilestoneTitle("");
                     }}
                     className="mt-3 flex items-center gap-2"
                   >
                     <input
                       className="flex-1 px-3 py-2 rounded-xl border border-border text-sm bg-white focus:border-charcoal"
-                      placeholder="新しいミニ目標"
-                      value={newSubGoalTitle}
-                      onChange={(e) => setNewSubGoalTitle(e.target.value)}
+                      placeholder="新しいマイルストーン"
+                      value={newMilestoneTitle}
+                      onChange={(e) => setNewMilestoneTitle(e.target.value)}
                     />
                     <button
                       type="submit"
@@ -422,7 +432,7 @@ function GoalRow({
               {completedSubGoals.length > 0 && (
                 <div className="rounded-2xl border border-dashed border-white/60 bg-white/50 p-3">
                   <p className="text-xs font-semibold text-ink/60 mb-2">
-                    完了済み
+                    完了済みマイルストーン
                   </p>
                   <ul className="space-y-2 text-xs text-ink/60">
                     {completedSubGoals.map((sg) => (
